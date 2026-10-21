@@ -72,5 +72,8 @@ assert "add_action('admin_init',[__CLASS__,'ensure_schedule']);" in official
 assert "add_action('init',[__CLASS__,'ensure_schedule']);" not in official
 assert 'Fonte inacessível a partir deste servidor' in official
 parser=(root/'wp-content/plugins/portal-regional-agentes/includes/class-pra-source-parser.php').read_text()
-assert 'portal-da-transparencia' in parser and 'ouvidoria' in parser
+assert 'article_context' in parser and "'apucarana'=> ['host'=>'www.apucarana.pr.gov.br'" in parser
+assert "PR_Official_Robots::parse" in official and "arapongas_sitemap" in official
+assert (root/'wp-content/plugins/portal-regional-agentes/includes/class-pra-robots.php').exists()
+assert (root/'tests/test-robots.php').exists()
 print('OK Etapa 2, ajustes de RSS, admin e filtros institucionais')
