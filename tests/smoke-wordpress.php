@@ -4,6 +4,10 @@ if (!defined('ABSPATH') || !class_exists('PR_Agentes') || !class_exists('PR_Offi
     fwrite(STDERR, "FAIL WordPress/plugins not loaded\n"); exit(1);
 }
 function require_condition($ok, $what) { if (!$ok) { fwrite(STDERR,"FAIL $what\n");exit(1); } echo "OK $what\n"; }
+$editor = get_user_by('login', 'testadmin');
+require_condition($editor instanceof WP_User, 'editorial test account exists');
+wp_set_current_user((int) $editor->ID);
+require_condition(current_user_can('edit_posts'), 'editor authenticated for approval');
 require_condition((bool)wp_next_scheduled('pra_official_hourly'), 'official cron scheduled');
 require_condition((bool)get_term_by('name', 'Arapongas','category'), 'Arapongas category');
 require_condition((bool)get_term_by('name', 'Maringá','category'), 'Maringá category');
