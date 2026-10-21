@@ -2,6 +2,7 @@
 /** Monitor de fontes oficiais. Somente metadados e links; nunca publica matérias. */
 if (!defined('ABSPATH')) exit;
 require_once __DIR__.'/class-pra-source-parser.php';
+require_once __DIR__.'/class-pra-robots.php';
 final class PR_Official {
   private const OPT='pra_official_options';
   private const LOG='pra_official_report';
@@ -104,11 +105,76 @@ final class PR_Official {
     wp_safe_redirect(add_query_arg('link_status',$status,admin_url('tools.php?page=pra-oficiais')));
     exit;
   }
+  private static function robots_policy(string $url):array {
+    $host=(string)wp_parse_url($url,PHP_URL_HOST);
+    $path=(string)wp_parse_url($url,PHP_URL_PATH);
+    if(!$host||!str_starts_with($url,'https://'))throw new RuntimeException('Robots: origem inválida');
+    $key='pra_robots_'.md5($host);
+    $robots=get_transient($key);
+    if(!is_string($robots)){
+      $res=wp_safe_remote_get('https://'.$host.'/robots.txt',['timeout'=>9,'redirection'=>0,'limit_response_size'=>200000,'headers'=>['User-Agent'=>'PortalRegionalTriagem/0.5']]);
+      if(is_wp_error($res))throw new RuntimeException('robots.txt indisponível; coleta não permitida');
+      $status=(int)wp_remote_retrieve_response_code($res);
+      if($status===404)$robots=''; // RFC 9309: 4xx robots não bloqueia; 5xx é indeterminado.
+      elseif($status!==200)throw new RuntimeException('robots.txt HTTP '.$status.'; coleta suspensa');
+      else $robots=wp_remote_retrieve_body($res);
+      set_transient($key,$robots,24*HOUR_IN_SECONDS);
+    }
+    $policy=PR_Official_Robots::parse($robots,$path);
+    if(!$policy['allowed'])throw new RuntimeException('robots.txt proíbe a coleta neste caminho');
+    return $policy;
+  }
+  private static function source_get(string $url,array $policy,array $headers=[]){
+    $host=(string)wp_parse_url($url,PHP_URL_HOST);
+    $delay=(int)($policy['delay']??0);
+    if($delay){
+      $key='pra_crawl_last_'.md5($host);
+      $last=(int)get_option($key,0);
+      $wait=$delay-(time()-$last);
+      if($wait>0){
+        // Não manter o navegador aguardando longos intervalos. Tentar em nova coleta manual.
+        throw new RuntimeException('Crawl-delay: aguardar '.$wait.'s para este servidor');
+      }
+      update_option($key,time(),false);
+    }
+    return wp_safe_remote_get($url,['timeout'=>15,'redirection'=>2,'limit_response_size'=>2000000,'headers'=>array_merge(['User-Agent'=>'PortalRegionalTriagem/0.5'],$headers)]);
+  }
+  private static function arapongas_sitemap(array $src):array {
+    $policy=self::robots_policy($src['url']);
+    $candidates=$policy['sitemaps'];
+    $host='arapongas.atende.net';
+    $selected='';
+    foreach($candidates as $candidate){
+      $parts=wp_parse_url($candidate);
+      if(($parts['scheme']??'')==='https' && ($parts['host']??'')===$host){$selected=$candidate;break;}
+    }
+    if(!$selected)throw new RuntimeException('Sitemap não declarado no robots; manter conector manual');
+    $sitemapPolicy=self::robots_policy($selected);
+    $res=self::source_get($selected,$sitemapPolicy,['Accept'=>'application/xml,text/xml']);
+    if(is_wp_error($res)||wp_remote_retrieve_response_code($res)!==200)throw new RuntimeException('Sitemap indisponível; usar conector manual');
+    $links=PR_Official_Robots::sitemap_urls(wp_remote_retrieve_body($res),'arapongas',time());
+    if(!$links)throw new RuntimeException('Sitemap sem notícias com lastmod <=48h; conector manual');
+    $items=[];
+    foreach($links as $link){
+      try{
+        $pagePolicy=self::robots_policy($link['link']);
+        $page=self::source_get($link['link'],$pagePolicy,['Accept'=>'text/html']);
+        if(is_wp_error($page)||wp_remote_retrieve_response_code($page)!==200)continue;
+        $html=wp_remote_retrieve_body($page);
+        $title='';
+        if(preg_match('~<meta\\s+[^>]*property=["\\']og:title["\\'][^>]*content=["\\']([^"\\']+)~iu',$html,$match))$title=html_entity_decode($match[1],ENT_QUOTES|ENT_HTML5,'UTF-8');
+        elseif(preg_match('~<title[^>]*>(.*?)</title>~isu',$html,$match))$title=html_entity_decode(strip_tags($match[1]),ENT_QUOTES|ENT_HTML5,'UTF-8');
+        $title=sanitize_text_field($title);
+        if(mb_strlen($title)<23)continue;
+        $items[]=['title'=>$title,'link'=>$link['link'],'date'=>$link['lastmod']];
+      }catch(RuntimeException $e){break;} // cumprir Crawl-delay, não contornar bloqueios
+    }
+    if(!$items)throw new RuntimeException('Sitemap encontrado, mas itens não acessíveis; usar conector manual');
+    return $items;
+  }
   private static function html_items(string $key,array $src):array {
-    $res=wp_safe_remote_get($src['url'],[
-      'timeout'=>15,'redirection'=>2,'limit_response_size'=>2000000,
-      'headers'=>['Accept'=>'text/html','User-Agent'=>'PortalRegionalTriagem/0.5 (pautas com atribuicao; contato editorial no portal)']
-    ]);
+    $policy=self::robots_policy($src['url']);
+    $res=self::source_get($src['url'],$policy,['Accept'=>'text/html']);
     if(is_wp_error($res))throw new RuntimeException($key==='maringa'?'Fonte inacessível a partir deste servidor; manter conector assistido.':'Conexão indisponível');
     if((int)wp_remote_retrieve_response_code($res)!==200)throw new RuntimeException('HTTP '.(int)wp_remote_retrieve_response_code($res));
     $content_type = (string) wp_remote_retrieve_header($res, 'content-type');
@@ -142,6 +208,7 @@ final class PR_Official {
     if($key==='londrina') {
       try{return self::london_rss($src);}catch(Throwable $e){return self::html_items($key,$src);}
     }
+    if($key==='arapongas')return self::arapongas_sitemap($src);
     return self::html_items($key,$src);
   }
   private static function category_ids(string $city):array {
