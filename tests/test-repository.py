@@ -103,3 +103,12 @@ assert 'PR1_AERO_HOST' in aero_bridge and "regional_aero_url" not in theme_funct
 assert 'wp_cache_get' in footer and 'wp_cache_set' in footer
 assert 'localStorage' in v7js and 'safe-area-inset' in v7css
 print('OK revisao SEO/social/sitemap, AERO host, footer e iPhone')
+
+# Modelos de políticas são arquivos de revisão, não páginas WP publicadas.
+legal=root/'docs/legal-rascunhos'
+expected=['EXPEDIENTE.md','CONTATO.md','POLITICA-EDITORIAL.md','DIREITO-DE-RESPOSTA.md','TERMOS-DE-USO.md','PRIVACIDADE-LGPD.md']
+for file in expected:
+    content=(legal/file).read_text()
+    assert 'RASCUNHO' in content and 'REVISÃO JURÍDICA PENDENTE' in content
+assert 'não é canal oficial' in footer and 'Publicidade — Espaço comercial' in front
+print('OK modelos institucionais em rascunho, independência e publicidade identificada')
