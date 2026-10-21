@@ -27,6 +27,20 @@ jobs:
         run: |
           set -euo pipefail
           while IFS= read -r -d '' file; do php -l "$file"; done < <(find wp-content tests -name '*.php' -print0)
+      - name: Testar hostname seguro do AERO
+        run: |
+          php tests/test-aero-host.php
+          php tests/test-aero-host-configured.php
+      - name: Conferir arquivos de segurança
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .github/workflows/importar-v5.yml
+          if rg --hidden --glob '!.git/**' 'alex''-direito' .; then
+            echo "ERRO: hostname pessoal presente no código"
+            exit 1
+          fi
+          echo "OK hostname pessoal ausente e importador legado removido"
       - name: Testar parser e URLs das cidades
         run: php tests/test-source-parser.php
       - name: Impedir publicação de pautas brutas
@@ -82,7 +96,8 @@ jobs:
           mkdir -p /tmp/portal-wp
           php /tmp/wp-cli.phar core download --path=/tmp/portal-wp --allow-root
           php /tmp/wp-cli.phar config create --path=/tmp/portal-wp --dbname=portalregional --dbuser=portal --dbpass=testpassword --dbhost=127.0.0.1:3306 --allow-root
-          php /tmp/wp-cli.phar core install --path=/tmp/portal-wp --url=http://localhost:8088 --title='Portal Regional Homologação' --admin_user=testadmin --admin_password='TemporarySmokeTestOnly_820!' --admin_email=test@example.invalid --skip-email --allow-root
+          wp_test_password="$(openssl rand -hex 24)"
+          php /tmp/wp-cli.phar core install --path=/tmp/portal-wp --url=http://localhost:8088 --title='Portal Regional Homologação' --admin_user=testadmin --admin_password="$wp_test_password" --admin_email=test@example.invalid --skip-email --allow-root
           cp -a wp-content/plugins/portal-regional-agentes /tmp/portal-wp/wp-content/plugins/
           cp -a wp-content/themes/portal-regional-tema /tmp/portal-wp/wp-content/themes/
           php /tmp/wp-cli.phar plugin activate portal-regional-agentes --path=/tmp/portal-wp --allow-root
@@ -110,8 +125,9 @@ jobs:
         run: |
           set -euo pipefail
           trap 'docker rm -f pr1-auth-test >/dev/null 2>&1 || true' EXIT
+          staging_test_password="$(openssl rand -hex 24)"
           docker run -d --name pr1-auth-test -p 127.0.0.1:18080:80 \
-            -e STAGING_USER=editor -e STAGING_PASSWORD=SegredoFicticioParaTesteCI2026 \
+            -e STAGING_USER=editor -e STAGING_PASSWORD="$staging_test_password" \
             -e WORDPRESS_DB_HOST=127.0.0.1:3306 \
             -e WORDPRESS_DB_NAME=testdb -e WORDPRESS_DB_USER=test \
             -e WORDPRESS_DB_PASSWORD=test pr1-staging:test
@@ -124,7 +140,7 @@ jobs:
           [ "$status" = 401 ] || { echo "ERRO: resposta sem senha $status"; docker logs pr1-auth-test; exit 1; }
           status_wrong=$(curl --silent --output /dev/null --write-out '%{http_code}' -u visitante:errado http://127.0.0.1:18080/ || true)
           [ "$status_wrong" = 401 ] || { echo "ERRO: senha errada retornou $status_wrong"; exit 1; }
-          status_good=$(curl --silent --output /dev/null --write-out '%{http_code}' -u editor:SegredoFicticioParaTesteCI2026 http://127.0.0.1:18080/ || true)
+          status_good=$(curl --silent --output /dev/null --write-out '%{http_code}' -u "editor:$staging_test_password" http://127.0.0.1:18080/ || true)
           [ "$status_good" != 401 ] && [ "$status_good" != 000 ] || { echo "ERRO: senha válida rejeitada $status_good"; exit 1; }
 
   official-live-probe:

@@ -27,7 +27,6 @@ add_action('customize_register', function ($customize) {
     'priority' => 25
   ]);
   foreach ([
-    'regional_aero_url' => ['URL do AERO (HTTPS)', 'https://aero-command-center-alex-direito-6512.vercel.app/'],
     'regional_public_brand' => ['Nome público', 'PR1 News'],
     'regional_brand_mark' => ['Sigla no símbolo', 'PR1'],
     'regional_public_tagline' => ['Frase da marca', 'Notícias da sua região, com contexto.']

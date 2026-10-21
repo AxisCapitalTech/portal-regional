@@ -27,12 +27,20 @@ final class PR1_Aero_Bridge {
   }
   public static function city_ids():array {return array_keys(self::CITIES);}
   public static function portal_url():string {return add_query_arg('pr1_aero','1',home_url('/'));}
+  /** Only this configured hostname may be used for navigation or embeds. */
+  public static function validated_host(string $raw):string {
+    $host=strtolower(trim($raw));
+    if(strlen($host)<4||strlen($host)>253||strpos($host,'.')===false)return '';
+    if(!preg_match('/^[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/D',$host))return '';
+    if(!filter_var($host,FILTER_VALIDATE_DOMAIN,FILTER_FLAG_HOSTNAME))return '';
+    $labels=explode('.',$host);
+    if(strlen(end($labels))<2)return '';
+    return $host;
+  }
   public static function app_url():string {
-    $default='https://aero-command-center-alex-direito-6512.vercel.app/';
-    $url=(string)get_theme_mod('regional_aero_url',$default);
-    $parts=wp_parse_url($url);
-    if(!is_array($parts)||($parts['scheme']??'')!=='https'||($parts['host']??'')!=='aero-command-center-alex-direito-6512.vercel.app')return $default;
-    return esc_url_raw($url);
+    if(!defined('PR1_AERO_HOST')||!is_string(PR1_AERO_HOST))return '';
+    $host=self::validated_host(PR1_AERO_HOST);
+    return $host!==''?esc_url_raw('https://'.$host.'/'):'';
   }
   public static function conditions($request) {
     // A API gratuita Open-Meteo só permite uso não comercial. Site com anúncios
