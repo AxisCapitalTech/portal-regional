@@ -25,3 +25,9 @@ A constante recebe apenas um hostname DNS: sem `https://`, porta, caminho, parâ
 ## Pendências explícitas
 
 Conectores/robots/frescor (Etapa 2); páginas legais/SEO/UX e governança editorial (Etapa 3); correção do AERO V13 no **repositório próprio**, quando autorizado e disponível (Etapa 4). Nenhum site foi implantado, domínio comprado, newsletter ou cron de produção ativado.
+
+## Domínio oficial pendente de definição
+
+**Ainda não há domínio AERO oficial homologado para o PR1.** O valor `clima.exemplo.com.br` acima é ilustrativo, não é endereço registrado, configurado ou publicável. Para produção, aprovar juridicamente e controlar um domínio, revisar a fonte de raios, verificar HTTPS e `frame-ancestors` no AERO; somente então definir `PR1_AERO_HOST` no `wp-config.php`. Sem constante, o painel remoto fica indisponível de propósito.
+
+O diagnóstico de fontes externas foi removido do workflow de push/PR e passou a `.github/workflows/probe-fontes-manual.yml` com gatilho exclusivo `workflow_dispatch`. O teste de ausência de domínio pessoal usa `grep` do runner em vez de depender de `rg` instalado.
