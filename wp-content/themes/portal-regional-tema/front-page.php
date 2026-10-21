@@ -77,7 +77,7 @@
     <?php if(shortcode_exists('pra_newsletter')): echo do_shortcode('[pra_newsletter]'); else: ?><div class="pr1-inactive">Inscrições não ativadas</div><?php endif; ?>
    </section>
    <?php if(shortcode_exists('pra_anuncios')) echo do_shortcode('[pra_anuncios position="sidebar" limit="3"]'); ?>
-   <?php if(is_active_sidebar('regional-sidebar')) dynamic_sidebar('regional-sidebar'); else: ?><section class="panel"><span class="pr1-panel-label">PUBLICIDADE</span><h3>Espaço comercial</h3><p>Reservado para futuras campanhas, sempre identificadas.</p><div class="pr1-inactive">Nenhum anunciante ativo</div></section><?php endif; ?>
+   <?php if(is_active_sidebar('regional-sidebar')): dynamic_sidebar('regional-sidebar'); else: ?><section class="panel"><span class="pr1-panel-label">PUBLICIDADE</span><h3>Espaço comercial</h3><p>Reservado para futuras campanhas, sempre identificadas.</p><div class="pr1-inactive">Nenhum anunciante ativo</div></section><?php endif; ?>
    <section class="panel"><span class="pr1-panel-label">COMPROMISSO EDITORIAL</span><h3>Antes de publicar, verificar</h3><p>Fontes, contexto, data, correções e aprovação humana acompanham toda notícia originada do monitoramento.</p></section>
   </aside>
  </div>
