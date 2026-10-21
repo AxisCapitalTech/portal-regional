@@ -18,13 +18,17 @@ function wp_insert_term($name,$tax,$params=[]){$id=count($GLOBALS['terms']??[])+
 function get_transient($key){return false;}function set_transient($key,$v,$s){return true;}function delete_transient($key){return true;}
 function wp_safe_remote_get($url,$args){
  $GLOBALS['calls'][]=$url;
+ if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/robots.txt'))
+   return ['status'=>200,'type'=>'text/plain','body'=>"User-agent: *\\nAllow: /\\nSitemap: https://arapongas.atende.net/sitemap.xml\\n"];
+ if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/sitemap.xml'))
+   return ['status'=>200,'type'=>'application/xml','body'=>'<urlset><url><loc>https://arapongas.atende.net/cidadao/noticia/agenda-cultural-na-cidade</loc><lastmod>'.gmdate('c').'</lastmod></url></urlset>'];
  foreach($GLOBALS['blocks'] as $host)if(str_contains($url,$host))return new WP_Error('offline');
  $map=['arapongas.atende.net'=>['/cidadao/noticia/agenda-cultural-na-cidade','Prefeitura de Arapongas divulga nova programação cultural'],
   'blog.londrina.pr.gov.br'=>['/?p=187239','Londrina abre inscrições para evento municipal'],
   'maringa.pr.gov.br'=>['/noticias/inscricoes-para-trilha-noturna-no-parque-do-inga-podem-ser-feitas-nesta-quarta-feira-21/43328','Inscrições para trilha noturna no Parque do Ingá podem ser feitas nesta quarta-feira, 21'],
   'apucarana.pr.gov.br'=>['/site/prefeitura-de-apucarana-faz-retirada-preventiva-de-eucalipto-com-risco-de-queda-ao-lado-do-espaco-das-feiras/','Prefeitura de Apucarana faz retirada preventiva de eucalipto com risco de queda'],
   'parana.pr.gov.br'=>['/aen/Noticia/Parana-ganha-nova-tecnologia-de-fundicao-de-aluminio','Paraná ganha nova tecnologia de fundição de alumínio em fábrica de motores']];
- foreach($map as $host=>$pair)if(str_contains($url,$host))return ['status'=>200,'type'=>'text/html; charset=utf-8','body'=>'<html><body><article><h2><a href="https://'.(str_starts_with($host,'maringa')?'www.':(str_starts_with($host,'apucarana')?'www.':(str_starts_with($host,'parana')?'www.':''))).$host.$pair[0].'">'.htmlspecialchars($pair[1]).'</a></h2></article></body></html>'.str_repeat(' ',400)];
+ foreach($map as $host=>$pair)if(str_contains($url,$host))return ['status'=>200,'type'=>'text/html; charset=utf-8','body'=>'<html><head><title>'.htmlspecialchars($pair[1]).'</title></head><body><article><h2><a href="https://'.(str_starts_with($host,'maringa')?'www.':(str_starts_with($host,'apucarana')?'www.':(str_starts_with($host,'parana')?'www.':''))).$host.$pair[0].'">'.htmlspecialchars($pair[1]).'</a></h2></article></body></html>'.str_repeat(' ',400)];
  return new WP_Error('unknown');
 }
 class WP_Error {public function __construct($msg='error'){} }

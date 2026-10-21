@@ -37,3 +37,7 @@ foreach($not_article as $url){
   if(PR_Source_Parser::canonical($url,'apucarana')!==''){fwrite(STDERR,"FAIL institutional Apucarana URL: $url\n");exit(1);}
   echo "OK institutional slug excluded $url\n";
 }
+
+$menu='<nav><h3><a href="https://www.apucarana.pr.gov.br/site/secretaria-de-gestao-da-cidade/">Secretaria de Gestão da Cidade e Informações</a></h3></nav>';
+if(PR_Source_Parser::extract($menu,'apucarana')){fwrite(STDERR,"FAIL Apucarana menu accepted\n");exit(1);}
+echo "OK Apucarana navigation rejected\n";

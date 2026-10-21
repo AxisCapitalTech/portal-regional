@@ -27,6 +27,8 @@ jobs:
         run: |
           set -euo pipefail
           while IFS= read -r -d '' file; do php -l "$file"; done < <(find wp-content tests -name '*.php' -print0)
+      - name: Validar robots e sitemap sem rede
+        run: php tests/test-robots.php
       - name: Testar parser e URLs das cidades
         run: php tests/test-source-parser.php
       - name: Impedir publicação de pautas brutas
