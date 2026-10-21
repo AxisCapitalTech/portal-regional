@@ -81,18 +81,23 @@ final class PR_Official {
     if(!current_user_can('manage_options'))wp_die('Acesso negado.');check_admin_referer('pra_official_run');
     self::collect(true);wp_safe_redirect(admin_url('tools.php?page=pra-oficiais'));exit;
   }
+  public static function normalize_manual_item(string $kind,string $url,string $title):?array {
+    if(!in_array($kind,['arapongas','maringa'],true)||strlen($url)>600)return null;
+    $link=PR_Source_Parser::canonical($url,$kind);
+    $clean=sanitize_text_field($title);
+    if(!$link||mb_strlen($clean,'UTF-8')<23||mb_strlen($clean,'UTF-8')>200)return null;
+    return ['title'=>$clean,'link'=>$link];
+  }
   public static function manual_link():void {
     if(!current_user_can('manage_options'))wp_die('Acesso negado.');
     check_admin_referer('pra_official_link');
     $kind=sanitize_key((string)($_POST['source']??''));
     $url=trim((string)($_POST['source_url']??''));
     $title=sanitize_text_field((string)($_POST['source_title']??''));
-    $valid=in_array($kind,['arapongas','maringa'],true)&&strlen($url)<=600;
-    $canonical=$valid?PR_Source_Parser::canonical($url,$kind):'';
-    if(!$canonical||mb_strlen($title,'UTF-8')<23||mb_strlen($title,'UTF-8')>200){
+    $item=self::normalize_manual_item($kind,$url,$title);
+    if(!$item){
       $status='invalid';
     } else {
-      $item=['title'=>$title,'link'=>$canonical];
       $created=self::create($item,self::SOURCES[$kind],$kind);
       $status=in_array($created,['created','duplicate'],true)?$created:'error';
     }
