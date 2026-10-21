@@ -1,0 +1,48 @@
+# AMBIENTE LOCAL DE HOMOLOGAÇÃO, NÃO SE DESTINA À INTERNET PÚBLICA.
+services:
+  database:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: portalregional
+      MARIADB_USER: portal
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD em .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Defina DB_ROOT_PASSWORD em .env}
+    volumes:
+      - portal_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  wordpress:
+    image: wordpress:php8.2-apache
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: database:3306
+      WORDPRESS_DB_NAME: portalregional
+      WORDPRESS_DB_USER: portal
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD em .env}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('DISABLE_WP_CRON', true);
+        define('WP_ENVIRONMENT_TYPE', 'staging');
+    ports:
+      - "127.0.0.1:${PORTAL_PORT:-8088}:80"
+    volumes:
+      - portal_wp:/var/www/html
+      - ../wp-content/plugins/portal-regional-agentes:/var/www/html/wp-content/plugins/portal-regional-agentes:ro
+      - ../wp-content/themes/portal-regional-tema:/var/www/html/wp-content/themes/portal-regional-tema:ro
+  cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    depends_on:
+      - wordpress
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - 'while true; do curl -fsS --max-time 20 http://wordpress/wp-cron.php?doing_wp_cron=1 >/dev/null || true; sleep 300; done'
+volumes:
+  portal_db:
+  portal_wp:

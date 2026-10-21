@@ -1,0 +1,3 @@
+<?php if (!defined('ABSPATH')) exit; ?>
+<footer class="footer"><div class="wrap footer-inner"><div><strong><?php echo esc_html(get_bloginfo('name') ?: 'Portal Regional'); ?></strong><p>Notícias e informações de interesse público. Conteúdos patrocinados são identificados. Informações corrigíveis por meio do contato editorial publicado.</p><small>© <?php echo esc_html(wp_date('Y')); ?> · <?php echo esc_html(get_bloginfo('name')); ?></small></div><div class="footer-nav"><a href="<?php echo esc_url(home_url('/')); ?>">Página inicial</a><a href="<?php echo esc_url(get_post_type_archive_link('post') ?: home_url('/')); ?>">Últimas notícias</a><span>Política editorial e contato: configurar antes de publicar</span></div></div></footer>
+<?php wp_footer(); ?></body></html>

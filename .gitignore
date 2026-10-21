@@ -1,0 +1,16 @@
+# Senhas/segredos e ambientes locais
+.env
+.env.*
+!.env.example
+wp-config.php
+**/wp-config.php
+*.sql
+*.sqlite
+*.log
+node_modules/
+vendor/
+dist/
+.DS_Store
+ops/.env
+ops/.env.*
+!ops/.env.example
