@@ -65,7 +65,7 @@ final class PR_Source_Parser {
       $tag=strtolower($node->tagName);
       if(in_array($tag,['nav','header','footer','aside'],true))return false;
       if(in_array($tag,['article','h2','h3','h4'],true))$positive=true;
-      if(preg_match('/(?:post|noticia|entry|news|feed|article)/i,$node->getAttribute('class')))$positive=true;
+      if(preg_match('/(?:post|noticia|entry|news|feed|article)/i',$node->getAttribute('class')))$positive=true;
     }
     return $positive;
   }
