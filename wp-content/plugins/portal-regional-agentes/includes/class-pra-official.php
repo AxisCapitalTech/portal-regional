@@ -162,7 +162,7 @@ final class PR_Official {
         if(is_wp_error($page)||wp_remote_retrieve_response_code($page)!==200)continue;
         $html=wp_remote_retrieve_body($page);
         $title='';
-        if(preg_match('~<meta\\s+[^>]*property=["\\']og:title["\\'][^>]*content=["\\']([^"\\']+)~iu',$html,$match))$title=html_entity_decode($match[1],ENT_QUOTES|ENT_HTML5,'UTF-8');
+        if(preg_match('~<meta[^>]+property="og:title"[^>]+content="([^"]+)"~i',$html,$match))$title=html_entity_decode($match[1],ENT_QUOTES|ENT_HTML5,'UTF-8');
         elseif(preg_match('~<title[^>]*>(.*?)</title>~isu',$html,$match))$title=html_entity_decode(strip_tags($match[1]),ENT_QUOTES|ENT_HTML5,'UTF-8');
         $title=sanitize_text_field($title);
         if(mb_strlen($title)<23)continue;
