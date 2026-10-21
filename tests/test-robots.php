@@ -1,6 +1,6 @@
 <?php
 define('ABSPATH',__DIR__.'/');
-if(!function_exists('mb_strlen'))function mb_strlen($x,...$args){return strlen($x);}
+if (!function_exists('mb_strlen')) { function mb_strlen($x,...$args) { return strlen($x); } }
 require_once __DIR__.'/../wp-content/plugins/portal-regional-agentes/includes/class-pra-source-parser.php';
 require_once __DIR__.'/../wp-content/plugins/portal-regional-agentes/includes/class-pra-robots.php';
 function assert_ok($v,$name){if(!$v){fwrite(STDERR,"FAIL $name\n");exit(1);}echo "OK $name\n";}
