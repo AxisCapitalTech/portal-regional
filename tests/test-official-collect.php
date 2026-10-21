@@ -71,4 +71,4 @@ PR_Official::collect(true);$r=get_option('pra_official_report');check('duplicate
 $prior=$h['maringa']['last_success'];$GLOBALS['blocks']=['maringa.pr.gov.br'];
 PR_Official::collect(true);$h=get_option('pra_official_health');$r=get_option('pra_official_report');
 check('failed source preserves last success',$h['maringa']['last_success']===$prior);
-check('failed source reports error',str_contains($r['sources']['maringa']['status'],'Erro'));
+check('failed source reports manual fallback',str_contains($r['sources']['maringa']['status'],'MANUAL'));
