@@ -19,6 +19,38 @@ foreach($targets as $key=>$url){
   $body=@file_get_contents($url,false,$ctx);
   $status=($body!==false && isset($http_response_header[0]))?$http_response_header[0]:'sem resposta';
   $items=($body!==false&&strlen($body)>350)?PR_Source_Parser::extract($body,$key,6):[];
+  // Diagnóstico apenas estrutural: não registrar páginas completas nem tokens.
+  if($key==='arapongas' && is_string($body)){
+    $fragment=substr($body,0,400000);
+    $candidates=[];
+    preg_match_all('~(?:href|data-href|data-url)\\s*=\\s*(["\\\'])([^"\\\']{2,500})\\1~iu',$fragment,$tokens,PREG_SET_ORDER);
+    foreach($tokens as $match){
+      $href=html_entity_decode($match[2],ENT_QUOTES|ENT_HTML5,'UTF-8');
+      $path=(string)parse_url($href,PHP_URL_PATH);
+      if($path!=='' && (str_contains($path,'notic')||str_contains($path,'materia'))) {
+         $candidates[]=mb_substr($path,0,130);
+         if(count($candidates)>=10)break;
+      }
+    }
+    echo 'ARAPONGAS-STRUCTURE '.json_encode(['candidate_paths'=>$candidates,'mentions_news'=>substr_count(mb_strtolower($fragment),'noticia'),'script_json'=>substr_count($fragment,'application/json')],JSON_UNESCAPED_UNICODE)."\n";
+  }
+  if($key==='maringa' && (!$body || strlen($body)<350) && function_exists('curl_init')){
+    $ch=curl_init($url);curl_setopt_array($ch,[
+     CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>20,CURLOPT_CONNECTTIMEOUT=>8,
+     CURLOPT_FOLLOWLOCATION=>true,CURLOPT_MAXREDIRS=>2,
+     CURLOPT_USERAGENT=>'Mozilla/5.0 (compatible; PortalRegionalTriagem/0.8)',
+     CURLOPT_HTTPHEADER=>['Accept: text/html','Accept-Encoding: identity'],
+     CURLOPT_ENCODING=>'identity'
+    ]);
+    $candidate=curl_exec($ch);
+    $meta=['status'=>curl_getinfo($ch,CURLINFO_HTTP_CODE),'bytes'=>is_string($candidate)?strlen($candidate):0,'error'=>mb_substr(curl_error($ch),0,95)];
+    curl_close($ch);
+    if(is_string($candidate) && strlen($candidate)>350){
+      $body=$candidate;
+      $items=PR_Source_Parser::extract($body,$key,6);
+    }
+    echo 'MARINGA-CURL '.json_encode($meta,JSON_UNESCAPED_UNICODE)."\n";
+  }
   $count=count($items);
   if($count)$success++;
   // Sanitized, bounded structural diagnostics when a source is downloaded but no URLs are recognized.
