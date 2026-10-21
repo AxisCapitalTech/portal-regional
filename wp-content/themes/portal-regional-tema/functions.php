@@ -1,6 +1,7 @@
 <?php
 if (!defined('ABSPATH')) exit;
 require_once get_template_directory().'/includes/pr1-aero-bridge.php';
+require_once get_template_directory().'/includes/pr1-news-seo.php';
 
 
 /**

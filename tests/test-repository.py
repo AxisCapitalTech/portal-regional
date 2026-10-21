@@ -75,3 +75,11 @@ assert "['original']??" in front and "Título na origem:" in front
 assert "is_front_page() || (bool)get_query_var('pr1_aero')" in theme_functions
 assert "localStorage.setItem" in v7js and "localStorage.getItem" in v7js
 print('OK Etapa 3: atribuição, política, UX e carregamento AERO condicional')
+
+# SEO nativo desabilitado quando Yoast/Rank Math estiverem ativos.
+seo=(root/'wp-content/themes/portal-regional-tema/includes/pr1-news-seo.php').read_text()
+for item in ['NewsArticle','BreadcrumbList','og:title','twitter:card','news:news','robots_txt','wp_robots','wpseo','RANK_MATH_VERSION']:
+    assert item in seo, item
+assert 'post_date_gmt' in seo and 'post_status' in seo and 'publish' in seo
+assert 'template_redirect' in seo and 'news-sitemap.xml' in seo
+print('OK Etapa 3: NewsArticle, metadados sociais e news-sitemap de 48 horas')
