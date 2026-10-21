@@ -65,3 +65,22 @@ assert 'new URL(endpoint' in aero_js and 'textContent' in aero_js
 assert "'enabled'=>0" in official
 assert 'normalize_manual_item' in official and 'manual_link' in official
 print('OK V9 AERO, licença comercial bloqueada e fallback assistido')
+
+// Etapa 1: restrição da origem AERO e workflow antigo excluído.
+assert not (root/'.github/workflows/importar-v5.yml').exists()
+host_fragment='alex'+'-direito'
+for file in root.rglob('*'):
+    if file.is_file() and '.git' not in file.parts and file.suffix in {'.php','.yml','.md','.js','.sh','.json','.css'}:
+        assert host_fragment not in file.read_text(errors='replace'), file
+assert "'regional_aero_url'" not in theme_functions
+assert 'PR1_AERO_HOST' in aero_bridge and 'validated_host' in aero_bridge
+assert "return ''" in aero_bridge
+assert "wp-config.php" in aero_page
+assert "if($aero_url!=='')" in aero_page
+workflow=(root/'.github/workflows/validar.yml').read_text()
+assert workflow.count('openssl rand -hex 24') >= 2
+assert 'tests/test-aero-host.php' in workflow and 'tests/test-aero-host-configured.php' in workflow
+assert '--admin_password="$wp_test_password"' in workflow
+assert '-e STAGING_PASSWORD="$staging_test_password"' in workflow
+assert 'contents: read' in workflow
+print('OK Etapa 1: AERO em constante, workflow legado ausente e credenciais CI aleatórias')

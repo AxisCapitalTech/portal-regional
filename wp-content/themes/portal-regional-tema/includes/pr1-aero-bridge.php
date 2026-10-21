@@ -33,6 +33,8 @@ final class PR1_Aero_Bridge {
     if(strlen($host)<4||strlen($host)>253||strpos($host,'.')===false)return '';
     if(!preg_match('/^[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/D',$host))return '';
     if(!filter_var($host,FILTER_VALIDATE_DOMAIN,FILTER_FLAG_HOSTNAME))return '';
+    if(filter_var($host,FILTER_VALIDATE_IP))return '';
+    if(preg_match('/^[0-9.]+$/D',$host))return '';
     $labels=explode('.',$host);
     if(strlen(end($labels))<2)return '';
     return $host;

@@ -22,6 +22,10 @@ foreach ($official_links as $link) {
 
 require_condition((bool)locate_template('front-page.php'), 'V7 front page template available');
 require_condition(class_exists('PR1_Aero_Bridge'), 'AERO weather bridge initialized');
+require_condition(PR1_Aero_Bridge::app_url()==='', 'AERO external URL disabled when constant is absent');
+require_condition(PR1_Aero_Bridge::validated_host('https://host.example')==='', 'AERO hostname rejects scheme');
+require_condition(PR1_Aero_Bridge::validated_host('aero.example.org')==='aero.example.org', 'AERO hostname accepts configured DNS');
+
 require_condition(file_exists(get_template_directory().'/page-pr1-aero.php'), 'AERO dedicated template exists');
 require_condition(file_exists(get_template_directory().'/assets/pr1-aero.js'), 'AERO frontend controller exists');
 require_condition(in_array('maringa',PR1_Aero_Bridge::city_ids(),true), 'AERO city catalog installed');
