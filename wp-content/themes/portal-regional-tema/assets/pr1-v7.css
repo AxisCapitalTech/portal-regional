@@ -35,3 +35,36 @@ html{scroll-behavior:smooth}body.pr1-v7{background:var(--pr1-paper);color:var(--
 .pr1-official-item p{font-size:11px;color:#697d91;margin:auto 0 0}
 @media(max-width:900px){.pr1-official-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:590px){.pr1-official-grid{grid-template-columns:1fr}.pr1-official-item{min-height:130px}}
+
+/* V9 — integração AERO, dados meteorológicos identificados e estado indisponível seguro. */
+.pr1-aero-home{background:#081d39;color:white;border-radius:18px;padding:24px;margin:28px 0 34px}
+.pr1-aero-home-top{display:flex;gap:22px;justify-content:space-between;align-items:center}
+.pr1-aero-home h2{font-size:clamp(23px,3vw,32px);color:white;margin:8px 0}
+.pr1-aero-home p{font-size:13px;color:#bdcee7;max-width:620px}
+.pr1-aero-link,.pr1-aero-open{display:inline-block;border-radius:9px;padding:12px 15px;background:#dce9ff;color:#072448!important;font-weight:800;text-align:center;text-decoration:none;font-size:13px}
+.pr1-aero-link:hover,.pr1-aero-open:hover{background:white}
+.pr1-aero-weather{margin-top:19px}
+.pr1-aero-city-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 15px}
+.pr1-aero-city{border:1px solid #a8bad850;background:#ffffff10;color:inherit;cursor:pointer;font-weight:750;font-size:12px;border-radius:8px;padding:10px 13px}
+.pr1-aero-city[aria-pressed=true]{background:#dce9ff;color:#072448;border-color:#dce9ff}
+.pr1-aero-reading{min-height:87px;background:#ffffff0c;border:1px solid #ffffff21;border-radius:12px;padding:18px;display:grid;gap:6px}
+.pr1-aero-reading strong{font-size:24px;color:#fff}
+.pr1-aero-reading span{font-size:13px;color:#ecf3ff}
+.pr1-aero-reading small{font-size:11px;color:#bac9e1}
+.pr1-aero-source{margin:11px 0 0!important;font-size:11px!important}
+.pr1-aero-source a{color:#cce7ff;text-decoration:underline}
+.pr1-aero-page .pr1-aero-top{background:linear-gradient(110deg,#081b32,#103b78);border-radius:17px;padding:36px;color:white;margin:16px 0}
+.pr1-aero-top h1{font-size:clamp(31px,4vw,49px);margin:10px 0;color:#fff}
+.pr1-aero-top p{color:#d0dff3;max-width:650px}
+.pr1-aero-buttons{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pr1-aero-buttons>a:not(.pr1-aero-open){color:#c9e0ff;text-decoration:underline}
+.pr1-aero-inline{background:#071b32;border-radius:16px;padding:24px;color:white}
+.pr1-aero-inline h2{color:white}
+.pr1-aero-frame-section{margin:30px 0}
+.pr1-aero-frame-section>p{color:#607084;font-size:13px}
+.pr1-aero-load{background:#003087;color:#fff;border:none;padding:14px 20px;border-radius:9px;cursor:pointer;font-weight:800}
+.pr1-aero-embed{display:none;margin-top:18px;border:1px solid #dce6ef;border-radius:14px;overflow:hidden;background:#050a10}
+.pr1-aero-embed.is-open{display:block}
+.pr1-aero-embed iframe{width:100%;height:min(87vh,950px);min-height:560px;border:0}
+.pr1-aero-disclaimer{font-size:12px;color:#50617b;line-height:1.6}
+@media(max-width:700px){.pr1-aero-home-top{display:block}.pr1-aero-link{margin-top:9px}.pr1-aero-home{padding:20px}.pr1-aero-embed iframe{height:75vh;min-height:520px}}

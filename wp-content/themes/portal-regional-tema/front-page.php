@@ -20,6 +20,13 @@
     <?php else: ?><span class="pr1-city-inactive"><?php echo esc_html($city); ?><small>Em preparação</small></span><?php endif; endforeach; ?>
   </div>
  </section>
+ <section class="pr1-aero-home" aria-labelledby="pr1-aero-home-title">
+  <div class="pr1-aero-home-top"><div><span class="pr1-kicker">AERO × PR1 NEWS</span>
+  <h2 id="pr1-aero-home-title">Meteorologia da nossa região</h2>
+  <p>Consulte condições meteorológicas de quatro cidades e abra o AERO Command Center para acompanhar o radar e outras camadas de monitoramento.</p></div>
+  <a class="pr1-aero-link" href="<?php echo esc_url(PR1_Aero_Bridge::portal_url()); ?>">Explorar painel AERO ↗</a></div>
+  <?php get_template_part('template-parts/pr1-aero-conditions'); ?>
+ </section>
  <div class="pr1-section-head"><h2>Destaques da capa</h2><span>Somente notícias publicadas pela redação</span></div>
  <?php
   $lead_term=get_term_by('name','Arapongas','category');

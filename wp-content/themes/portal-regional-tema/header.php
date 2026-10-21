@@ -23,6 +23,6 @@
   $is_active=is_category($term->term_id);
 ?>
 <li><a href="<?php echo esc_url(get_category_link($term)); ?>"<?php echo $is_active?' aria-current="page"':''; ?>><?php echo esc_html($label); ?></a></li>
-<?php endforeach; ?><li><a href="<?php echo esc_url(home_url('/?s=')); ?>">Buscar</a></li></ul>
+<?php endforeach; ?><li><a href="<?php echo esc_url(PR1_Aero_Bridge::portal_url()); ?>">AERO · Clima</a></li><li><a href="<?php echo esc_url(home_url('/?s=')); ?>">Buscar</a></li></ul>
 <?php endif; ?>
 </div></nav>
