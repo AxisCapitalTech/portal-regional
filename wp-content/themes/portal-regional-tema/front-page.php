@@ -1,6 +1,6 @@
 <?php get_header(); ?>
 <main id="conteudo" class="wrap">
-  <section class="intro"><div><span class="eyebrow">Informação perto de você</span><h1>A notícia começa aqui.</h1><p>Arapongas em primeiro plano. Londrina, Maringá e Apucarana todos os dias. O Paraná e o Brasil em contexto.</p></div></section>
+  <section class="intro"><div><span class="eyebrow"><?php echo esc_html(regional_public_brand()); ?> · cobertura regional</span><h1>A notícia perto de você.</h1><p>Arapongas em primeiro plano. Londrina, Maringá e Apucarana todos os dias. O Paraná e o Brasil em contexto.</p></div></section>
   <div class="localities" aria-label="Cidades da cobertura">
     <?php foreach(['Arapongas','Londrina','Maringá','Apucarana'] as $city): $term=get_term_by('name',$city,'category'); ?>
        <?php if ($term): ?><a href="<?php echo esc_url(get_category_link($term)); ?>"><?php echo esc_html($city); ?></a><?php else: ?><span><?php echo esc_html($city); ?></span><?php endif; ?>

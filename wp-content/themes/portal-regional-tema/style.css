@@ -1,9 +1,9 @@
 /*
-Theme Name: Portal Regional — Redação
+Theme Name: PR1 News — Redação (provisório)
 Theme URI: https://wordpress.org/
 Author: Projeto Portal Regional
 Description: Tema responsivo e acessível para notícias de Arapongas, Londrina, Maringá, Apucarana, Paraná e Brasil.
-Version: 0.4.0
+Version: 0.6.0
 Requires at least: 6.4
 Requires PHP: 8.0
 License: GPL-2.0-or-later
@@ -36,3 +36,22 @@ Text Domain: portal-regional-tema
 .city-empty{border:1px dashed #ccd9d7;border-radius:13px;background:#fff;padding:16px;color:#627380;font-size:13px}
 .coverage-tag{display:inline-block;background:#eaf0f6;border-radius:7px;padding:4px 8px;color:#3b5d72;font-size:11px;font-weight:800;text-transform:uppercase}
 @media(max-width:620px){.city-section{margin-bottom:24px}}
+
+/* V6 — Identidade editorial provisória, configurável pelo Personalizar.
+ * Namespaces técnicos regional-* e portal-regional-* preservados. */
+:root { --pr1-blue:#003087; --pr1-red:#e30613; }
+.ticker { background:var(--pr1-blue); }
+.brand-mark { width:58px; height:54px; border-radius:9px; background:var(--pr1-blue);
+  font-size:19px; letter-spacing:-1px; font-weight:900; position:relative;
+  box-shadow:0 4px 14px rgba(0,48,135,.15); }
+.brand-mark::after { content:""; width:5px; position:absolute; top:0; bottom:0; right:0;
+  background:var(--pr1-red); }
+.brand b { color:#10283a; font-weight:900; font-size:29px; }
+.brand small { letter-spacing:.25px; text-transform:none; font-size:11px; color:#536777; }
+.nav-status { color:var(--pr1-blue); }
+.eyebrow,.kicker,.section-label a { color:var(--pr1-blue); }
+:focus-visible { outline-color:var(--pr1-red); }
+@media(max-width:620px) {
+  .brand-mark { width:50px; height:48px; font-size:17px; }
+  .brand b { font-size:25px; }
+}

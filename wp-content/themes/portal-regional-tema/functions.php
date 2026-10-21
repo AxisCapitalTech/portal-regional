@@ -1,5 +1,47 @@
 <?php
 if (!defined('ABSPATH')) exit;
+
+/**
+ * Marca editorial de homologação: alterável no Personalizar, sem renomear o projeto interno.
+ * Esta configuração não constitui registro de marca nem publica conteúdo automaticamente.
+ */
+function regional_brand_setting(string $key, string $fallback): string {
+  $value = sanitize_text_field((string) get_theme_mod($key, $fallback));
+  return $value !== '' ? $value : $fallback;
+}
+function regional_public_brand(): string {
+  return regional_brand_setting('regional_public_brand', 'PR1 News');
+}
+function regional_brand_mark(): string {
+  return regional_brand_setting('regional_brand_mark', 'PR1');
+}
+function regional_public_tagline(): string {
+  return regional_brand_setting('regional_public_tagline', 'Notícias da sua região, com contexto.');
+}
+add_action('customize_register', function ($customize) {
+  $customize->add_section('regional_brand_section', [
+    'title' => 'Marca pública — homologação',
+    'description' => 'Nome provisório de apresentação. Não altera o nome técnico do tema ou do repositório.',
+    'priority' => 25
+  ]);
+  foreach ([
+    'regional_public_brand' => ['Nome público', 'PR1 News'],
+    'regional_brand_mark' => ['Sigla no símbolo', 'PR1'],
+    'regional_public_tagline' => ['Frase da marca', 'Notícias da sua região, com contexto.']
+  ] as $id => $item) {
+    $customize->add_setting($id, [
+      'default' => $item[1],
+      'sanitize_callback' => 'sanitize_text_field',
+      'transport' => 'refresh'
+    ]);
+    $customize->add_control($id, [
+      'label' => $item[0],
+      'section' => 'regional_brand_section',
+      'type' => 'text'
+    ]);
+  }
+});
+
 add_action('after_setup_theme', function () {
   load_theme_textdomain('portal-regional-tema', get_template_directory().'/languages');
   add_theme_support('title-tag'); add_theme_support('post-thumbnails'); add_theme_support('automatic-feed-links');
@@ -8,7 +50,7 @@ add_action('after_setup_theme', function () {
   add_image_size('regional-lead', 950, 520, true);
 });
 add_action('wp_enqueue_scripts', function () {
-  wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], '0.4.0');
+  wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], '0.6.0');
 });
 add_action('widgets_init', function () {
   register_sidebar(['name'=>'Barra lateral','id'=>'regional-sidebar','description'=>'Espaço para anúncios identificados, banners e informações institucionais','before_widget'=>'<section class="panel sidebar-widget">','after_widget'=>'</section>','before_title'=>'<h3 class="widget-title">','after_title'=>'</h3>']);
