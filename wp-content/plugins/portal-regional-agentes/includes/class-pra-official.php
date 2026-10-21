@@ -3,6 +3,7 @@
 if (!defined('ABSPATH')) exit;
 require_once __DIR__.'/class-pra-source-parser.php';
 require_once __DIR__.'/class-pra-robots.php';
+require_once __DIR__.'/class-pra-freshness.php';
 final class PR_Official {
   private const OPT='pra_official_options';
   private const LOG='pra_official_report';
@@ -228,6 +229,18 @@ final class PR_Official {
     foreach(['homicid','assassin','estup','investig','acusad','suspeit','prisao','preso','policia','denunc','fraud','desvi','violenc','morte','morre','obit','prefeit','candidat','eleic','partid','governad','saude','medic','hospital','vacina'] as $word)if(str_contains($s,$word))return true;
     return false;
   }
+  /**
+   * Conservatively detect publication time on an article URL, respecting robots.
+   * A missing/unreadable date is returned as 0, never inferred from crawl time.
+   */
+  private static function source_date(string $url):int {
+    try {
+      $policy=self::robots_policy($url);
+      $response=self::source_get($url,$policy,['Accept'=>'text/html']);
+      if(is_wp_error($response)||(int)wp_remote_retrieve_response_code($response)!==200)return 0;
+      return PR_Official_Freshness::date_from_html((string)wp_remote_retrieve_body($response));
+    } catch(Throwable $error){return 0;}
+  }
   private static function duplicate(string $fingerprint):bool {
     global $wpdb;
     return(bool)$wpdb->get_var($wpdb->prepare("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key=%s AND meta_value=%s LIMIT 1",self::META,$fingerprint));
@@ -235,7 +248,11 @@ final class PR_Official {
   private static function create(array $item,array $src,string $key):string {
     $fp=hash('sha256',(string)$item['link']);if(self::duplicate($fp))return 'duplicate';
     $title=mb_substr(sanitize_text_field((string)$item['title']),0,200);
-    $date=(int)($item['date']??0);$high=self::risky($title);
+    $date=(int)($item['date']??0);
+    // HTML list pages are not evidence of publication date. Inspect source articles.
+    if($date===0 && $key!=='londrina')$date=self::source_date((string)$item['link']);
+    if($date && ($date<time()-7*DAY_IN_SECONDS || $date>time()+DAY_IN_SECONDS))return 'stale';
+    $high=self::risky($title);
     $body='<p><strong>PAUTA DE MONITORAMENTO — NÃO PUBLICAR SEM REVISÃO.</strong></p>';
     $body.='<p><strong>Fonte:</strong> '.esc_html($src['label']).' · <strong>Cidade:</strong> '.esc_html($src['city']).' · <strong>Data da publicação:</strong> '.($date?esc_html(wp_date('d/m/Y H:i',$date)):'não identificada').'</p>';
     $body.='<p><a href="'.esc_url($item['link']).'" rel="noopener noreferrer nofollow" target="_blank">Abrir publicação na fonte oficial</a></p>';
@@ -264,6 +281,7 @@ final class PR_Official {
             $status=self::create($item,$src,$key);
             if($status==='created'){$x['created']++;$log['created']++;}
             elseif($status==='duplicate'){$x['duplicates']++;$log['duplicates']++;}
+            elseif($status==='stale'){$x['stale']=($x['stale']??0)+1;}
             else {$x['status']='Falha parcial ao gravar pauta'; $x['errors']++;}
           }
           if($x['status']==='Não executada')$x['status']='Fonte lida; revisar pautas e datas';
