@@ -5,8 +5,10 @@
  */
 if(!defined('ABSPATH'))exit;
 function pr1_news_seo_is_external():bool {
-  return defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION')
-    || class_exists('WPSEO_Options') || class_exists('RankMath\\Helper',false);
+  return defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION') || defined('AIOSEO_VERSION')
+    || defined('SEOPRESS_VERSION') || defined('THE_SEO_FRAMEWORK_VERSION')
+    || class_exists('WPSEO_Options',false) || class_exists('RankMath\\Helper',false)
+    || class_exists('AIOSEO\\Plugin\\AIOSEO',false);
 }
 function pr1_news_description():string {
   if(is_singular('post')) {
@@ -16,13 +18,42 @@ function pr1_news_description():string {
   }
   return function_exists('regional_public_tagline')?regional_public_tagline():(string)get_bloginfo('description');
 }
+function pr1_news_publisher_logo():string {
+  $id=(int)get_theme_mod('custom_logo',0);
+  $url=$id?wp_get_attachment_image_url($id,'full'):false;
+  return $url?esc_url_raw($url):'';
+}
+function pr1_news_og_image():string {
+  if(is_singular('post')){
+    $img=get_the_post_thumbnail_url(get_queried_object_id(),'full');
+    if($img)return esc_url_raw($img);
+  }
+  $logo=pr1_news_publisher_logo();
+  if($logo)return $logo;
+  $site_icon=get_site_icon_url(512);
+  return $site_icon?esc_url_raw($site_icon):'';
+}
+function pr1_news_canonical_url():string {
+  if(is_singular())return (string)get_permalink(get_queried_object_id());
+  if(is_front_page()||is_home()||is_category()){
+    if(max(1,(int)get_query_var('paged'))>1)return (string)get_pagenum_link((int)get_query_var('paged'));
+    if(is_category())return (string)get_category_link(get_queried_object_id());
+    return home_url('/');
+  }
+  return '';
+}
 add_action('wp_head',function(){
   if(pr1_news_seo_is_external()||is_admin()||is_search())return;
   $description=pr1_news_description();
   if($description!=='')echo '<meta name="description" content="'.esc_attr($description).'">'."\n";
   $isArticle=is_singular('post') && get_post_status(get_queried_object_id())==='publish';
   $title=$isArticle?get_the_title(get_queried_object_id()):regional_public_brand();
-  $link=$isArticle?get_permalink(get_queried_object_id()):home_url('/');
+  $link=pr1_news_canonical_url();
+  if(!$link)$link=home_url('/');
+  $og_image=pr1_news_og_image();
+  echo '<link rel="canonical" href="'.esc_url($link).'">'."\n";
+  echo '<meta property="og:site_name" content="'.esc_attr(regional_public_brand()).'">'."\n";
+  echo '<meta property="og:locale" content="pt_BR">'."\n";
   echo '<meta property="og:type" content="'.($isArticle?'article':'website').'">'."\n";
   echo '<meta property="og:title" content="'.esc_attr($title).'">'."\n";
   echo '<meta property="og:url" content="'.esc_url($link).'">'."\n";
@@ -30,14 +61,14 @@ add_action('wp_head',function(){
   echo '<meta name="twitter:card" content="summary_large_image">'."\n";
   echo '<meta name="twitter:title" content="'.esc_attr($title).'">'."\n";
   if($description!=='')echo '<meta name="twitter:description" content="'.esc_attr($description).'">'."\n";
+  if($og_image){
+    echo '<meta property="og:image" content="'.esc_url($og_image).'">'."\n";
+    echo '<meta name="twitter:image" content="'.esc_url($og_image).'">'."\n";
+  }
   if(!$isArticle)return;
   $post=get_post(get_queried_object_id());
   if(!$post)return;
   $image=get_the_post_thumbnail_url($post->ID,'full');
-  if($image){
-    echo '<meta property="og:image" content="'.esc_url($image).'">'."\n";
-    echo '<meta name="twitter:image" content="'.esc_url($image).'">'."\n";
-  }
   $news=[
     '@context'=>'https://schema.org','@type'=>'NewsArticle',
     'mainEntityOfPage'=>['@type'=>'WebPage','@id'=>get_permalink($post)],
@@ -47,6 +78,8 @@ add_action('wp_head',function(){
     'author'=>['@type'=>'Person','name'=>get_the_author_meta('display_name',$post->post_author)],
     'publisher'=>['@type'=>'Organization','name'=>regional_public_brand(),'url'=>home_url('/')],
   ];
+  $publisher_logo=pr1_news_publisher_logo();
+  if($publisher_logo)$news['publisher']['logo']=['@type'=>'ImageObject','url'=>$publisher_logo];
   if($description!=='')$news['description']=$description;
   if($image)$news['image']=[$image];
   $trail=[
@@ -70,7 +103,15 @@ add_action('init',function(){
   add_rewrite_rule('^news-sitemap\\.xml$','index.php?pr1_news_sitemap=1','top');
 });
 add_filter('query_vars',function($vars){$vars[]='pr1_news_sitemap';return $vars;});
-add_action('after_switch_theme',function(){flush_rewrite_rules(false);});
+add_action('after_switch_theme',function(){
+  delete_option('pr1_news_rewrites_v2');
+  flush_rewrite_rules(false);
+});
+add_action('admin_init',function(){
+  if(pr1_news_seo_is_external()||get_option('pr1_news_rewrites_v2')==='1')return;
+  flush_rewrite_rules(false);
+  update_option('pr1_news_rewrites_v2','1',false);
+});
 add_action('template_redirect',function(){
   if(!get_query_var('pr1_news_sitemap'))return;
   if(pr1_news_seo_is_external()){status_header(404);exit;}

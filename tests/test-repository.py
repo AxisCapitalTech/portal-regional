@@ -92,3 +92,14 @@ assert "regional_category_for($label)" in masthead
 assert "'fetchpriority'=>'high'" in theme_functions
 assert "regional_category_slug_" in theme_functions
 print('OK Etapa 3: notícias prioritárias, mídia de destaque e slugs de editoria')
+
+# Auditoria complementar: SEO com canonical/OG e sitemap que reescreve em instalação ativa.
+assert "ImageObject" in seo and 'publisher' in seo
+for property_name in ['og:site_name','og:locale','og:image','rel="canonical"','get_pagenum_link','pr1_news_rewrites_v2','admin_init']:
+    assert property_name in seo,property_name
+for plugin_name in ['AIOSEO_VERSION','SEOPRESS_VERSION','THE_SEO_FRAMEWORK_VERSION']:
+    assert plugin_name in seo
+assert 'PR1_AERO_HOST' in aero_bridge and "regional_aero_url" not in theme_functions
+assert 'wp_cache_get' in footer and 'wp_cache_set' in footer
+assert 'localStorage' in v7js and 'safe-area-inset' in v7css
+print('OK revisao SEO/social/sitemap, AERO host, footer e iPhone')

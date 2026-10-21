@@ -55,3 +55,10 @@ Text Domain: portal-regional-tema
   .brand-mark { width:50px; height:48px; font-size:17px; }
   .brand b { font-size:25px; }
 }
+
+/* Auditoria: controles acessíveis mesmo nos formulários do tema clássico. */
+.brand small,.nav-status,.eyebrow,.kicker,.pr1-v7 .byline,.pr1-v7 .pr1-hero-note,
+.pr1-v7 .pr1-identity-word small {font-size:max(12px,.75rem)}
+.search-form input,.search-form select,.search-form button,.pr1-v7 input,.pr1-v7 select,
+.pr1-v7 button {min-height:44px}
+.localities span,.pr1-v7 .pr1-hero-tags span {min-height:44px;display:inline-flex;align-items:center}

@@ -28,7 +28,6 @@ add_action('customize_register', function ($customize) {
     'priority' => 25
   ]);
   foreach ([
-    'regional_aero_url' => ['URL do AERO (HTTPS)', 'https://aero-command-center-alex-direito-6512.vercel.app/'],
     'regional_public_brand' => ['Nome público', 'PR1 News'],
     'regional_brand_mark' => ['Sigla no símbolo', 'PR1'],
     'regional_public_tagline' => ['Frase da marca', 'Notícias da sua região, com contexto.']
@@ -61,6 +60,8 @@ add_action('wp_enqueue_scripts', function () {
     wp_enqueue_script('regional-aero', get_template_directory_uri().'/assets/pr1-aero.js', [], '0.9.0', true);
   }
 });
+add_action('save_post_page',function(){wp_cache_delete('pr1_legal_pages_v1','pr1news');});
+add_action('delete_post',function($id){if(get_post_type($id)==='page')wp_cache_delete('pr1_legal_pages_v1','pr1news');});
 add_action('widgets_init', function () {
   register_sidebar(['name'=>'Barra lateral','id'=>'regional-sidebar','description'=>'Espaço para anúncios identificados, banners e informações institucionais','before_widget'=>'<section class="panel sidebar-widget">','after_widget'=>'</section>','before_title'=>'<h3 class="widget-title">','after_title'=>'</h3>']);
 });

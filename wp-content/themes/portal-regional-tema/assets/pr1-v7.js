@@ -1,15 +1,16 @@
-/* Persiste preferências acessíveis no navegador, sem rastrear conteúdo lido. */
+/* Preferências locais, sem serviços externos. */
 (()=>{'use strict';
 const controls=[['[data-pr1-contrast]','pr1-high-contrast'],['[data-pr1-type]','pr1-large-type']];
 for(const [selector,cls] of controls){
- const el=document.querySelector(selector);if(!el)continue;
- let enabled=false;
- try{enabled=window.localStorage.getItem('pr1-pref-'+cls)==='1';}catch(_){}
- document.body.classList.toggle(cls,enabled);el.setAttribute('aria-pressed',String(enabled));
+ const el=document.querySelector(selector);
+ if(!el)continue;
+ const key='pr1-reading-'+cls;
+ try{if(localStorage.getItem(key)==='on')document.body.classList.add(cls);}catch(_){}
+ el.setAttribute('aria-pressed',String(document.body.classList.contains(cls)));
  el.addEventListener('click',()=>{
-  enabled=document.body.classList.toggle(cls);
+  const enabled=document.body.classList.toggle(cls);
   el.setAttribute('aria-pressed',String(enabled));
-  try{window.localStorage.setItem('pr1-pref-'+cls,enabled?'1':'0');}catch(_){}
+  try{localStorage.setItem(key,enabled?'on':'off');}catch(_){}
  });
 }
 })();
