@@ -52,3 +52,5 @@ jobs:
             git commit -m 'feat: importar Portal Regional V5 validado'
             git push origin HEAD:main
           fi
+
+# Reexecução após registrar validar.yml previamente
