@@ -16,7 +16,7 @@ theme_functions=(root/'wp-content/themes/portal-regional-tema/functions.php').re
 masthead=(root/'wp-content/themes/portal-regional-tema/header.php').read_text()
 footer=(root/'wp-content/themes/portal-regional-tema/footer.php').read_text()
 assert "regional_public_brand" in theme_functions
-assert "'PR1 News'" in theme_functions and "'regional_brand_mark', 'PR1'" in theme_functions
+assert "'PR1 News'" in theme_functions and "'regional_brand_mark' => ['Sigla no símbolo', 'PR1']" in theme_functions
 assert 'esc_html(regional_public_brand())' in masthead
 assert 'esc_html(regional_brand_mark())' in masthead
 assert 'esc_html(regional_public_brand())' in footer
