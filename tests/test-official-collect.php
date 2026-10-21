@@ -19,7 +19,7 @@ function get_transient($key){return false;}function set_transient($key,$v,$s){re
 function wp_safe_remote_get($url,$args){
  $GLOBALS['calls'][]=$url;
  if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/robots.txt'))
-   return ['status'=>200,'type'=>'text/plain','body'=>"User-agent: *\\nAllow: /\\nSitemap: https://arapongas.atende.net/sitemap.xml\\n"];
+   return ['status'=>200,'type'=>'text/plain','body'=>"User-agent: *\nAllow: /\nSitemap: https://arapongas.atende.net/sitemap.xml\n"];
  if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/sitemap.xml'))
    return ['status'=>200,'type'=>'application/xml','body'=>'<urlset><url><loc>https://arapongas.atende.net/cidadao/noticia/agenda-cultural-na-cidade</loc><lastmod>'.gmdate('c').'</lastmod></url></urlset>'];
  foreach($GLOBALS['blocks'] as $host)if(str_contains($url,$host))return new WP_Error('offline');
