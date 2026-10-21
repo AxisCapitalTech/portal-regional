@@ -66,7 +66,7 @@ assert "'enabled'=>0" in official
 assert 'normalize_manual_item' in official and 'manual_link' in official
 print('OK V9 AERO, licença comercial bloqueada e fallback assistido')
 
-// Etapa 1: restrição da origem AERO e workflow antigo excluído.
+# Etapa 1: restrição da origem AERO e workflow antigo excluído.
 assert not (root/'.github/workflows/importar-v5.yml').exists()
 host_fragment='alex'+'-direito'
 for file in root.rglob('*'):
