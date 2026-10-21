@@ -132,8 +132,8 @@ final class PR_Official {
       $last=(int)get_option($key,0);
       $wait=$delay-(time()-$last);
       if($wait>0){
-        // Não manter o navegador aguardando longos intervalos. Tentar em nova coleta manual.
-        throw new RuntimeException('Crawl-delay: aguardar '.$wait.'s para este servidor');
+        if($wait>10)throw new RuntimeException('Crawl-delay: aguardar '.$wait.'s para este servidor');
+        sleep($wait); // Respeita o intervalo explícito antes da próxima requisição.
       }
       update_option($key,time(),false);
     }
@@ -153,9 +153,9 @@ final class PR_Official {
     $res=self::source_get($selected,$sitemapPolicy,['Accept'=>'application/xml,text/xml']);
     if(is_wp_error($res)||wp_remote_retrieve_response_code($res)!==200)throw new RuntimeException('Sitemap indisponível; usar conector manual');
     $links=PR_Official_Robots::sitemap_urls(wp_remote_retrieve_body($res),'arapongas',time());
-    if(!$links)throw new RuntimeException('Sitemap sem notícias com lastmod <=48h; conector manual');
+    if(!$links)throw new RuntimeException('Sitemap sem notícias recentes no formato esperado; conector manual');
     $items=[];
-    foreach($links as $link){
+    foreach(array_slice($links,0,2) as $link){
       try{
         $pagePolicy=self::robots_policy($link['link']);
         $page=self::source_get($link['link'],$pagePolicy,['Accept'=>'text/html']);
@@ -166,7 +166,7 @@ final class PR_Official {
         elseif(preg_match('~<title[^>]*>(.*?)</title>~isu',$html,$match))$title=html_entity_decode(strip_tags($match[1]),ENT_QUOTES|ENT_HTML5,'UTF-8');
         $title=sanitize_text_field($title);
         if(mb_strlen($title)<23)continue;
-        $items[]=['title'=>$title,'link'=>$link['link'],'date'=>$link['lastmod']];
+        $items[]=['title'=>$title,'link'=>$link['link'],'date'=>0,'sitemap_lastmod'=>$link['lastmod']];
       }catch(RuntimeException $e){break;} // cumprir Crawl-delay, não contornar bloqueios
     }
     if(!$items)throw new RuntimeException('Sitemap encontrado, mas itens não acessíveis; usar conector manual');
@@ -275,7 +275,8 @@ final class PR_Official {
           } else {
             $health[$key]['last_error']='Falha parcial ao salvar algumas pautas';
           }
-        }catch(Throwable $e){$x['status']='Erro: '.mb_substr($e->getMessage(),0,110);$health[$key]['last_error']=mb_substr($e->getMessage(),0,110);error_log('Portal Regional fonte '.str_replace(['\r','\n'], '',$key).': '.$e->getMessage());}
+        }catch(Throwable $e){$manual=in_array($key,['arapongas','maringa'],true);
+          $x['status']=($manual?'MANUAL — ':'Erro: ').mb_substr($e->getMessage(),0,110);$health[$key]['last_error']=mb_substr($e->getMessage(),0,110);error_log('Portal Regional fonte '.str_replace(['\r','\n'], '',$key).': '.$e->getMessage());}
         $health[$key]['last_attempt']=time();
         $log['sources'][$key]=$x;
       }
