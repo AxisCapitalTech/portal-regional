@@ -46,11 +46,15 @@ python3 tests/test-repository.py
 find wp-content tests -name '*.php' -print0 | xargs -0 -n 1 php -l
 ```
 
-Os testes sintéticos de fontes não usam a internet. O teste `smoke-wordpress.php` exige WordPress/MariaDB e é preparado para GitHub Actions quando este repositório estiver no GitHub.
+Os testes sintéticos de fontes não usam a internet. O teste `smoke-wordpress.php` exige WordPress/MariaDB e é preparado para GitHub Actions e deve ser executado no GitHub Actions.
 
-## GitHub
+## GitHub e status de homologação
 
-A conta do conector foi identificada como `AxisCapitalTech`, mas **nenhuma instalação ou repositório acessível estava disponível**. Não houve push. Crie um repositório privado e conceda à integração acesso explícito. Importe os arquivos sem incluir `ops/.env`, credenciais ou dados privados. Quando acionado, o workflow executará os testes reais no runner remoto; não foram executados neste ambiente.
+O repositório privado `AxisCapitalTech/portal-regional` contém o código-fonte integral da V5, importado e conferido por SHA-256 no GitHub Actions. Os testes sintéticos de parser, fontes oficiais, duplicatas e aprovação editorial passaram no workflow de importação.
+
+A matriz PHP (8.0/8.2/8.3) e o teste WordPress/MariaDB são executados pelo workflow `.github/workflows/validar.yml` a cada nova alteração no repositório. Isso é homologação automatizada, não publicação de um site de notícias.
+
+**Não há publicação automática de notícias**: as pautas coletadas ficam pendentes até revisão e aprovação humana.
 
 ## Limitações
 
