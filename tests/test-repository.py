@@ -77,3 +77,8 @@ assert "PR_Official_Robots::parse" in official and "arapongas_sitemap" in offici
 assert (root/'wp-content/plugins/portal-regional-agentes/includes/class-pra-robots.php').exists()
 assert (root/'tests/test-robots.php').exists()
 print('OK Etapa 2, ajustes de RSS, admin e filtros institucionais')
+
+assert "PR_Official_Freshness::date_from_html" in official
+assert "'stale'" in official and "7*DAY_IN_SECONDS" in official
+assert (root/'tests/test-freshness.php').exists()
+print('OK source publication date extraction and stale screening')
