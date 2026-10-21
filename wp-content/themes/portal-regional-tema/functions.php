@@ -64,6 +64,27 @@ add_action('wp_enqueue_scripts', function () {
 add_action('widgets_init', function () {
   register_sidebar(['name'=>'Barra lateral','id'=>'regional-sidebar','description'=>'Espaço para anúncios identificados, banners e informações institucionais','before_widget'=>'<section class="panel sidebar-widget">','after_widget'=>'</section>','before_title'=>'<h3 class="widget-title">','after_title'=>'</h3>']);
 });
+/**
+ * Resolve city categories by configurable slugs; old name lookup remains
+ * available for the installations provisioned by the editorial agents.
+ */
+function regional_category_for(string $label) {
+  $key=sanitize_title($label);
+  $slug=sanitize_title((string)get_theme_mod('regional_category_slug_'.$key,$key));
+  $term=$slug?get_term_by('slug',$slug,'category'):false;
+  if(!$term || is_wp_error($term))$term=get_term_by('name',$label,'category');
+  return ($term && !is_wp_error($term))?$term:false;
+}
+add_action('customize_register',function($customize){
+  $customize->add_section('regional_categories_section',[
+    'title'=>'Editorias regionais — slugs', 'description'=>'Associe uma seção existente a cada cidade; não cria nem renomeia categorias.','priority'=>27
+  ]);
+  foreach(['Arapongas','Londrina','Maringá','Apucarana','Paraná','Brasil'] as $label){
+    $id='regional_category_slug_'.sanitize_title($label);
+    $customize->add_setting($id,['default'=>sanitize_title($label),'sanitize_callback'=>'sanitize_title','transport'=>'refresh']);
+    $customize->add_control($id,['label'=>$label.' — slug','section'=>'regional_categories_section','type'=>'text']);
+  }
+});
 function regional_label($id) {
   $cats = get_the_category($id);
   return $cats ? $cats[0]->name : 'Notícias';
@@ -73,7 +94,7 @@ function regional_card($post, $mode='story') {
   $id = $post->ID;
   if ($mode === 'lead') {
     echo '<article class="lead"><a href="'.esc_url(get_permalink($id)).'">';
-    if (has_post_thumbnail($id)) echo get_the_post_thumbnail($id,'regional-lead');
+    if (has_post_thumbnail($id)) echo get_the_post_thumbnail($id,'regional-lead', ['loading'=>'eager','fetchpriority'=>'high','decoding'=>'async']);
     else echo '<div class="lead-media">Notícia em destaque</div>';
     echo '</a><div class="lead-content"><span class="kicker">'.esc_html(regional_label($id)).'</span><h2><a href="'.esc_url(get_permalink($id)).'">'.esc_html(get_the_title($id)).'</a></h2><div class="summary">'.esc_html(wp_trim_words(get_the_excerpt($id),28)).'</div><div class="byline">'.esc_html(get_the_date('d/m/Y',$id)).' · '.esc_html(get_the_author_meta('display_name',$post->post_author)).'</div></div></article>';
   } elseif ($mode === 'compact') {

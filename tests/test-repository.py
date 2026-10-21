@@ -83,3 +83,12 @@ for item in ['NewsArticle','BreadcrumbList','og:title','twitter:card','news:news
 assert 'post_date_gmt' in seo and 'post_status' in seo and 'publish' in seo
 assert 'template_redirect' in seo and 'news-sitemap.xml' in seo
 print('OK Etapa 3: NewsArticle, metadados sociais e news-sitemap de 48 horas')
+
+# Capa prioriza manchetes antes dos seletores e configura editorias por slug.
+assert front.index('Destaques da capa') < front.index('pr1-quick-local')
+assert front.index('Destaques da capa') < front.index('pr1-aero-home')
+assert "regional_category_for($city)" in front
+assert "regional_category_for($label)" in masthead
+assert "'fetchpriority'=>'high'" in theme_functions
+assert "regional_category_slug_" in theme_functions
+print('OK Etapa 3: notícias prioritárias, mídia de destaque e slugs de editoria')
