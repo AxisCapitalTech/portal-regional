@@ -14,7 +14,7 @@ final class PR_Official {
     'londrina'=>['label'=>'Blog Oficial de Londrina','url'=>'https://blog.londrina.pr.gov.br/','rss'=>'https://blog.londrina.pr.gov.br/feed/','city'=>'Londrina','kind'=>'rss-html'],
     'maringa'=>['label'=>'Prefeitura de Maringá','url'=>'https://www.maringa.pr.gov.br/noticias','city'=>'Maringá','kind'=>'html'],
     'apucarana'=>['label'=>'Prefeitura de Apucarana','url'=>'https://www.apucarana.pr.gov.br/site/noticias/','city'=>'Apucarana','kind'=>'html'],
-    'aen'=>['label'=>'Agência Estadual de Notícias (Paraná)','url'=>'https://www.parana.pr.gov.br/aen/noticias','city'=>'Paraná','kind'=>'html']
+    'aen'=>['label'=>'Agência Estadual de Notícias (Paraná)','url'=>'https://www.parana.pr.gov.br/aen/arquivo','city'=>'Paraná','kind'=>'html']
   ];
   public static function init(): void {
     add_action('admin_menu',[__CLASS__,'menu']);

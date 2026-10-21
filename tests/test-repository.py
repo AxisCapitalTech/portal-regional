@@ -36,3 +36,14 @@ assert 'aria-pressed' in masthead and "addEventListener" in v7js
 assert 'regional-v7' in theme_functions and 'pr1-v7.css' in theme_functions
 assert 'wp_get_environment_type()' in masthead and 'wp_get_environment_type()' in front
 print('OK V7 visual, cidades, leitura acessível, conteúdo real e homologação')
+
+# V8: chamadas de fontes oficiais podem ser exibidas, mas nunca viram posts automaticamente.
+official_link_file=(root/'wp-content/themes/portal-regional-tema/includes/pr1-links-oficiais-v8.php').read_text()
+assert "Nas fontes oficiais" in front and "Clipping de comunicados oficiais" in front
+assert "pr1-links-oficiais-v8.php" in front and "target=\"_blank\"" in front
+for domain in ['arapongas.atende.net','blog.londrina.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br']:
+    assert domain in official_link_file
+assert 'post_status' not in official_link_file and 'wp_insert_post' not in official_link_file
+assert 'enabled' in official and "'enabled'=>0" in official
+assert '/aen/arquivo' in official
+print('OK V8 official source clipping separate from monitored drafts')

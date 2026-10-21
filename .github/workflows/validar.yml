@@ -126,3 +126,18 @@ jobs:
           [ "$status_wrong" = 401 ] || { echo "ERRO: senha errada retornou $status_wrong"; exit 1; }
           status_good=$(curl --silent --output /dev/null --write-out '%{http_code}' -u editor:SegredoFicticioParaTesteCI2026 http://127.0.0.1:18080/ || true)
           [ "$status_good" != 401 ] && [ "$status_good" != 000 ] || { echo "ERRO: senha válida rejeitada $status_good"; exit 1; }
+
+  official-live-probe:
+    name: Diagnóstico real de fontes oficiais (não publica)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, dom, xml, curl
+          coverage: none
+      - name: Ler URLs públicas e medir extração de títulos/links
+        run: php tests/probe-live-sources.php

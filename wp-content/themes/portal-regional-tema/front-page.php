@@ -44,6 +44,23 @@
    <?php endif; ?>
   </div>
  </div>
+ <section class="pr1-official-links" aria-labelledby="pr1-official-heading">
+   <div class="pr1-section-head"><h2 id="pr1-official-heading">Nas fontes oficiais</h2><span>Links externos selecionados em 21/10/2026</span></div>
+   <p class="pr1-official-disclosure"><strong>Clipping de comunicados oficiais.</strong> Estas chamadas são referências para leitura no site de origem, não reportagens produzidas pelo PR1. Não há atualização automática nem aprovação editorial implícita de todo o conteúdo externo.</p>
+   <div class="pr1-official-grid">
+   <?php $official_links=require get_template_directory().'/includes/pr1-links-oficiais-v8.php';
+   foreach ($official_links as $entry):
+      $host=wp_parse_url($entry['url'], PHP_URL_HOST);
+      if (!in_array($host,['arapongas.atende.net','blog.londrina.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br'],true)) continue;
+   ?>
+     <article class="pr1-official-item">
+       <div class="pr1-official-meta"><span><?php echo esc_html($entry['city']); ?></span><time><?php echo esc_html($entry['date']); ?></time></div>
+       <h3><a href="<?php echo esc_url($entry['url']); ?>" target="_blank" rel="noopener noreferrer nofollow external"><?php echo esc_html($entry['title']); ?> <span aria-hidden="true">↗</span></a></h3>
+       <p>Fonte: <?php echo esc_html($entry['source']); ?></p>
+     </article>
+   <?php endforeach; ?>
+   </div>
+ </section>
  <section class="pr1-formats" aria-label="Formatos editoriais"><div class="pr1-section-head"><h2>Notícia, serviço e contexto</h2><span>Três formatos de informação local</span></div>
   <div class="pr1-format-grid">
    <article class="pr1-format-card"><b aria-hidden="true">01</b><span class="pr1-red-label">NOTÍCIA</span><h3>O fato, com apuração</h3><p>Informação factual, fontes identificadas e responsabilidade sobre cada detalhe publicado.</p></article>
