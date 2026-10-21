@@ -6,5 +6,5 @@
  <?php endforeach; ?>
  </div>
  <div class="pr1-aero-reading" role="status" aria-live="polite">Consultando previsão regional…</div>
- <p class="pr1-aero-source">Fonte: Open-Meteo · previsão meteorológica, não aviso oficial. <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Sobre a fonte ↗</a></p>
+ <p class="pr1-aero-source">Fonte: Open-Meteo · previsão meteorológica, não aviso oficial. <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ↗</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
 </div>

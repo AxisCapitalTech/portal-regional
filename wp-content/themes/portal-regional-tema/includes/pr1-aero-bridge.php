@@ -16,6 +16,7 @@ final class PR1_Aero_Bridge {
       ]);
     });
     add_filter('query_vars',function($vars){$vars[]='pr1_aero';return $vars;});
+    add_filter('pre_handle_404',function($override){return get_query_var('pr1_aero') ? true : $override;});
     add_filter('template_include',function($template){
       if(get_query_var('pr1_aero')){
         $found=get_template_directory().'/page-pr1-aero.php';
@@ -30,10 +31,15 @@ final class PR1_Aero_Bridge {
     $default='https://aero-command-center-alex-direito-6512.vercel.app/';
     $url=(string)get_theme_mod('regional_aero_url',$default);
     $parts=wp_parse_url($url);
-    if(!is_array($parts)||($parts['scheme']??'')!=='https'||empty($parts['host']))return $default;
+    if(!is_array($parts)||($parts['scheme']??'')!=='https'||($parts['host']??'')!=='aero-command-center-alex-direito-6512.vercel.app')return $default;
     return esc_url_raw($url);
   }
   public static function conditions($request) {
+    // A API gratuita Open-Meteo só permite uso não comercial. Site com anúncios
+    // ou assinaturas requer plano/licença comercial configurado antes de usar.
+    if(wp_get_environment_type()==='production'
+       && (!defined('PR1_AERO_COMMERCIAL_API_APPROVED') || PR1_AERO_COMMERCIAL_API_APPROVED!==true))
+      return new WP_Error('weather_license_pending','Serviço climático indisponível até a regularização da licença comercial.',['status'=>503]);
     $id=sanitize_key((string)$request->get_param('city'));
     if(!isset(self::CITIES[$id]))return new WP_Error('invalid_city','Cidade não disponível.',['status'=>400]);
     $cache='pr1_aero_cond_'.$id;

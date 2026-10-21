@@ -50,6 +50,13 @@ $GLOBALS['wpdb']=new MockDB;
 // Source fixture only: the test does not call remote network or WordPress install.
 require_once __DIR__.'/../wp-content/plugins/portal-regional-agentes/includes/class-pra-official.php';
 function check($name,$ok){if(!$ok){fwrite(STDERR,"FAIL $name\n");exit(1);}echo "OK $name\n";}
+$valid=PR_Official::normalize_manual_item('maringa','https://www.maringa.pr.gov.br/noticias/acao-de-formacao-para-a-populacao/43327','Maringá realiza ação de formação para a população');
+check('manual fallback accepts official Maringa URL',is_array($valid)&&str_contains($valid['link'],'maringa.pr.gov.br'));
+$valid=PR_Official::normalize_manual_item('arapongas','https://arapongas.atende.net/cidadao/noticia/prefeitura-anuncia-agenda-de-eventos','Prefeitura divulga programação cultural em Arapongas');
+check('manual fallback accepts official Arapongas URL',is_array($valid)&&str_contains($valid['link'],'arapongas.atende.net'));
+check('manual fallback rejects untrusted host',PR_Official::normalize_manual_item('maringa','https://www.maringa.pr.gov.br.evil.example/noticias/slug/12345','Um título qualquer de notícia verdadeira oficial')===null);
+check('manual fallback rejects HTTP',PR_Official::normalize_manual_item('arapongas','http://arapongas.atende.net/cidadao/noticia/prefeitura-anuncia-agenda-de-eventos','Prefeitura divulga programação cultural em Arapongas')===null);
+check('manual fallback rejects inadequate title',PR_Official::normalize_manual_item('arapongas','https://arapongas.atende.net/cidadao/noticia/prefeitura-anuncia-agenda-de-eventos','Leia mais')===null);
 PR_Official::collect(true);
 $r=get_option('pra_official_report');$h=get_option('pra_official_health');
 check('all five sources created pending',count($GLOBALS['posts'])===5 && $r['created']===5);

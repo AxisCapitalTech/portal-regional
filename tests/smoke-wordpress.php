@@ -21,6 +21,11 @@ foreach ($official_links as $link) {
 }
 
 require_condition((bool)locate_template('front-page.php'), 'V7 front page template available');
+require_condition(class_exists('PR1_Aero_Bridge'), 'AERO weather bridge initialized');
+require_condition(file_exists(get_template_directory().'/page-pr1-aero.php'), 'AERO dedicated template exists');
+require_condition(file_exists(get_template_directory().'/assets/pr1-aero.js'), 'AERO frontend controller exists');
+require_condition(in_array('maringa',PR1_Aero_Bridge::city_ids(),true), 'AERO city catalog installed');
+
 require_condition(function_exists('regional_public_brand') && regional_public_brand() === 'PR1 News', 'provisional public brand default');
 require_condition(regional_brand_mark() === 'PR1', 'provisional brand mark default');
 $previous_brand = get_theme_mod('regional_public_brand');

@@ -47,3 +47,21 @@ assert 'post_status' not in official_link_file and 'wp_insert_post' not in offic
 assert 'enabled' in official and "'enabled'=>0" in official
 assert '/aen/arquivo' in official
 print('OK V8 official source clipping separate from monitored drafts')
+
+# V9: AERO incorporado como link protegido, previsão limitada e sistema editorial preservado.
+aero_bridge=(root/'wp-content/themes/portal-regional-tema/includes/pr1-aero-bridge.php').read_text()
+aero_page=(root/'wp-content/themes/portal-regional-tema/page-pr1-aero.php').read_text()
+aero_widget=(root/'wp-content/themes/portal-regional-tema/template-parts/pr1-aero-conditions.php').read_text()
+aero_js=(root/'wp-content/themes/portal-regional-tema/assets/pr1-aero.js').read_text()
+for term in ['pr1-aero-home','PR1_Aero_Bridge::portal_url','pr1-aero-conditions']:
+    assert term in front
+for term in ['AERO Command Center','data-aero-load','data-src','sandbox=','pr1-aero-conditions']:
+    assert term in aero_page
+for term in ['register_rest_route','pr1-aero/v1','wp_safe_remote_get','set_transient','Open-Meteo','PR1_AERO_COMMERCIAL_API_APPROVED']:
+    assert term in aero_bridge
+assert "allow-same-origin" in aero_page and 'src="' not in aero_page.split('data-src=')[0]
+assert 'Arapongas' in aero_widget and 'Maringá' in aero_widget
+assert 'new URL(endpoint' in aero_js and 'textContent' in aero_js
+assert "'enabled'=>0" in official
+assert 'normalize_manual_item' in official and 'manual_link' in official
+print('OK V9 AERO, licença comercial bloqueada e fallback assistido')
