@@ -11,6 +11,15 @@ require_condition(current_user_can('edit_posts'), 'editor authenticated for appr
 require_condition((bool)wp_next_scheduled('pra_official_hourly'), 'official cron scheduled');
 require_condition(file_exists(get_template_directory().'/assets/pr1-v7.css'), 'V7 stylesheet available');
 require_condition(file_exists(get_template_directory().'/assets/pr1-v7.js'), 'V7 accessible reading script available');
+$official_links = require get_template_directory().'/includes/pr1-links-oficiais-v8.php';
+require_condition(count($official_links) === 7, 'V8 has seven curated official source links');
+$allowed_hosts=['arapongas.atende.net','blog.londrina.pr.gov.br','www.maringa.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br'];
+foreach ($official_links as $link) {
+    $parts=wp_parse_url($link['url']);
+    require_condition(is_array($parts) && ($parts['scheme']??'')==='https' && in_array(($parts['host']??''),$allowed_hosts,true), 'V8 source URL is secure and official');
+    require_condition(!empty($link['city']) && !empty($link['source']) && !empty($link['date']) && !empty($link['title']), 'V8 source link provenance');
+}
+
 require_condition((bool)locate_template('front-page.php'), 'V7 front page template available');
 require_condition(function_exists('regional_public_brand') && regional_public_brand() === 'PR1 News', 'provisional public brand default');
 require_condition(regional_brand_mark() === 'PR1', 'provisional brand mark default');

@@ -22,3 +22,25 @@ Data da conferência inicial: **21/10/2026**.
 - https://blog.londrina.pr.gov.br/?p=245381
 - https://www.apucarana.pr.gov.br/site/governo-federal-publica-portaria-que-permite-saque-do-fgts-pelas-familias-atingidas-pelo-temporal-em-apucarana/
 - https://www.parana.pr.gov.br/aen/Noticia/Estado-mobiliza-municipios-para-Dia-D-de-Alfabetizacao-nas-escolas
+
+## Resultados do diagnóstico real de fontes (21/10/2026)
+
+| Fonte | Resposta | Links reconhecidos | Conclusão |
+|---|---|---:|---|
+| Arapongas | HTTP 200; HTML obtido | 0 | Listagem exige investigação; não declarar sucesso |
+| Londrina | HTTP 200 | 6 | Coleta de metadados válida |
+| Maringá | Tempo esgotado no runner | 0 | Link individual verificado no navegador; coleta automática pendente |
+| Apucarana | HTTP 200 | 6 | Coleta de metadados válida |
+| Agência Estadual | HTTP 200 | 6 | Coleta de metadados válida |
+
+Total: 3/5 fontes obtidas e reconhecidas automaticamente. A verificação em navegador das matérias não substitui teste da rotina de coleta.
+Adicionado ao clipping um link de Maringá, confirmado em 20/10/2026:
+https://www.maringa.pr.gov.br/noticias/inscricoes-para-trilha-noturna-no-parque-do-inga-podem-ser-feitas-nesta-quarta-feira-21/43328
+
+O clipping exibe sete links externos selecionados, **não** reportagens próprias do PR1; a lista não se atualiza sozinha. O WordPress ainda não está hospedado publicamente.
+
+## Pendências
+
+- Apurar estrutura dinâmica da listagem de Arapongas e uma API oficial documentada, se houver.
+- Investigar estabilidade do endpoint de Maringá sem contornar mecanismos de acesso.
+- Homologar coleta manual num WordPress real hospedado antes de autorizar qualquer cron.

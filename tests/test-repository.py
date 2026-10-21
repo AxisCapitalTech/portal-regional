@@ -41,7 +41,7 @@ print('OK V7 visual, cidades, leitura acessível, conteúdo real e homologação
 official_link_file=(root/'wp-content/themes/portal-regional-tema/includes/pr1-links-oficiais-v8.php').read_text()
 assert "Nas fontes oficiais" in front and "Clipping de comunicados oficiais" in front
 assert "pr1-links-oficiais-v8.php" in front and "target=\"_blank\"" in front
-for domain in ['arapongas.atende.net','blog.londrina.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br']:
+for domain in ['arapongas.atende.net','blog.londrina.pr.gov.br','www.maringa.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br']:
     assert domain in official_link_file
 assert 'post_status' not in official_link_file and 'wp_insert_post' not in official_link_file
 assert 'enabled' in official and "'enabled'=>0" in official

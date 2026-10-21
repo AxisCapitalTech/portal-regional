@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Portal Regional — Agentes Editoriais
  * Description: Monitora fontes RSS autorizadas, classifica por região e prepara pautas auditáveis para aprovação humana.
- * Version: 0.5.0
+ * Version: 0.6.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Projeto Portal Regional

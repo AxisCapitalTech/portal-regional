@@ -50,9 +50,9 @@ add_action('after_setup_theme', function () {
   add_image_size('regional-lead', 950, 520, true);
 });
 add_action('wp_enqueue_scripts', function () {
-  wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], '0.7.0');
-  wp_enqueue_style('regional-v7', get_template_directory_uri().'/assets/pr1-v7.css', ['regional-theme'], '0.7.0');
-  wp_enqueue_script('regional-v7-reading', get_template_directory_uri().'/assets/pr1-v7.js', [], '0.7.0', true);
+  wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], '0.8.0');
+  wp_enqueue_style('regional-v7', get_template_directory_uri().'/assets/pr1-v7.css', ['regional-theme'], '0.8.0');
+  wp_enqueue_script('regional-v7-reading', get_template_directory_uri().'/assets/pr1-v7.js', [], '0.8.0', true);
 });
 add_action('widgets_init', function () {
   register_sidebar(['name'=>'Barra lateral','id'=>'regional-sidebar','description'=>'Espaço para anúncios identificados, banners e informações institucionais','before_widget'=>'<section class="panel sidebar-widget">','after_widget'=>'</section>','before_title'=>'<h3 class="widget-title">','after_title'=>'</h3>']);
