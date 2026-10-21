@@ -21,3 +21,18 @@ assert 'esc_html(regional_public_brand())' in masthead
 assert 'esc_html(regional_brand_mark())' in masthead
 assert 'esc_html(regional_public_brand())' in footer
 print('OK marca editorial configurável, header/footer consistentes')
+
+# V7 editorial integrada ao tema WordPress sem tocar nos agentes.
+v7css=(root/'wp-content/themes/portal-regional-tema/assets/pr1-v7.css').read_text()
+v7js=(root/'wp-content/themes/portal-regional-tema/assets/pr1-v7.js').read_text()
+single=(root/'wp-content/themes/portal-regional-tema/single.php').read_text()
+for name in ['pr1-hero','pr1-quick-local','pr1-feature','pr1-city-grid','pr1-promise']:
+    assert name in front and name in v7css, 'Seção V7 ausente: '+name
+assert "get_posts(" in front and "'post_status'=>'publish'" in front
+assert 'regional_card(' in front and 'the_content()' in single
+assert 'get_category_link(' in front and 'esc_url(' in front
+assert 'data-pr1-contrast' in masthead and 'data-pr1-type' in masthead
+assert 'aria-pressed' in masthead and "addEventListener" in v7js
+assert 'regional-v7' in theme_functions and 'pr1-v7.css' in theme_functions
+assert 'wp_get_environment_type()' in masthead and 'wp_get_environment_type()' in front
+print('OK V7 visual, cidades, leitura acessível, conteúdo real e homologação')
