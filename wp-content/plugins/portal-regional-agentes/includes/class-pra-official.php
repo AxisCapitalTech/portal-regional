@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) exit;
 require_once __DIR__.'/class-pra-source-parser.php';
 require_once __DIR__.'/class-pra-robots.php';
 require_once __DIR__.'/class-pra-freshness.php';
+require_once __DIR__.'/class-pra-fingerprint.php';
 final class PR_Official {
   private const OPT='pra_official_options';
   private const LOG='pra_official_report';
@@ -30,11 +31,12 @@ final class PR_Official {
   private static function options(): array {return wp_parse_args((array)get_option(self::OPT,[]),self::defaults());}
   public static function activate(): void {self::ensure_schedule();}
   public static function ensure_schedule(): void {
+    PR_Fingerprint_Index::install();
     if (get_option(self::OPT)===false) add_option(self::OPT,self::defaults(),'',false);
     if(!wp_next_scheduled(self::EVENT))wp_schedule_event(time()+270,'hourly',self::EVENT);
     if(get_option('pra_category_setup_version')!=='3'){foreach(['Arapongas','Londrina','Maringá','Apucarana'] as $c)self::category_ids($c);self::category_ids('Paraná');update_option('pra_category_setup_version','3',false);}
   }
-  public static function deactivate(): void {wp_clear_scheduled_hook(self::EVENT);delete_transient(self::LOCK);}
+  public static function deactivate(): void {wp_clear_scheduled_hook(self::EVENT);delete_transient(self::LOCK);delete_option(self::LOCK);}
   public static function menu():void {add_management_page('Fontes oficiais — Portal Regional','Fontes Oficiais','manage_options','pra-oficiais',[__CLASS__,'page']);}
   public static function page(): void {
     if(!current_user_can('manage_options'))return;
@@ -258,8 +260,10 @@ final class PR_Official {
     $body.='<p><a href="'.esc_url($item['link']).'" rel="noopener noreferrer nofollow" target="_blank">Abrir publicação na fonte oficial</a></p>';
     $body.='<p>Este monitor recuperou apenas um título e um link. Antes de redigir, verificar data, fatos, autoria, contexto, licença e eventuais atualizações.</p>';
     if($high)$body.='<p><strong>ALTO RISCO EDITORIAL:</strong> conferir integralmente com responsável humano antes de considerar publicação.</p>';
+    if(!PR_Fingerprint_Index::reserve($fp))return self::duplicate($fp)?'duplicate':'error';
     $id=wp_insert_post(['post_type'=>'post','post_status'=>'pending','post_title'=>'[PAUTA] '.$title,'post_content'=>wp_kses_post($body),'post_excerpt'=>'Pauta em conferência, não publicada.','post_category'=>self::category_ids($src['city']),'comment_status'=>'closed'],true);
-    if(is_wp_error($id))return 'error';
+    if(is_wp_error($id)){PR_Fingerprint_Index::release($fp);return 'error';}
+    PR_Fingerprint_Index::commit($fp,(int)$id);
     update_post_meta($id,self::META,$fp);update_post_meta($id,'_pra_source_url',$item['link']);
     update_post_meta($id,'_pra_source_name',$src['label']);update_post_meta($id,'_pra_source_date',$date);
     update_post_meta($id,'_pra_city',$src['city']);update_post_meta($id,'_pra_sensitivity',$high?'alto':'normal');
@@ -268,7 +272,10 @@ final class PR_Official {
   }
   public static function collect(bool $manual=false):void {
     $o=self::options();if(!$manual && empty($o['enabled']))return;
-    if(get_transient(self::LOCK))return;set_transient(self::LOCK,1,25*MINUTE_IN_SECONDS);
+    $expiration=(int)get_option(self::LOCK,0);
+    if($expiration>time())return;
+    if($expiration)delete_option(self::LOCK);
+    if(!add_option(self::LOCK,time()+25*MINUTE_IN_SECONDS,'',false))return;
     $log=['started'=>time(),'created'=>0,'duplicates'=>0,'sources'=>[]];
     $health=(array)get_option(self::HEALTH,[]);
     try {
@@ -298,7 +305,7 @@ final class PR_Official {
         $health[$key]['last_attempt']=time();
         $log['sources'][$key]=$x;
       }
-    }finally{$log['finished']=time();update_option(self::LOG,$log,false);update_option(self::HEALTH,$health,false);delete_transient(self::LOCK);}
+    }finally{$log['finished']=time();update_option(self::LOG,$log,false);update_option(self::HEALTH,$health,false);delete_option(self::LOCK);}
   }
 }
 PR_Official::init();

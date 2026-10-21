@@ -11,6 +11,7 @@
  */
 if (!defined('ABSPATH')) { exit; }
 
+require_once __DIR__.'/includes/class-pra-fingerprint.php';
 final class PR_Agentes {
     private const OPTION = 'pra_config';
     private const REPORT = 'pra_report';
@@ -269,12 +270,14 @@ final class PR_Agentes {
                     $term = term_exists($region, 'category');
                     if (!$term) { $term = wp_insert_term($region, 'category'); }
                     $cat = (!is_wp_error($term) && is_array($term)) ? [(int)$term['term_id']] : (is_int($term) ? [$term] : []);
+                    if (!PR_Fingerprint_Index::reserve($fp)) { $stats['duplicates']++; continue; }
                     $id = wp_insert_post([
                         'post_type'=>'post','post_status'=>'pending','post_title'=>'[PAUTA] '.$title,
                         'post_content'=>wp_kses_post($body), 'post_excerpt'=>'Pauta em revisão. Não publicada.',
                         'post_category'=>$cat, 'comment_status'=>'closed',
                     ], true);
-                    if (is_wp_error($id)) { $stats['errors'][] = 'Falha ao criar pauta: '.$source['name']; continue; }
+                    if (is_wp_error($id)) { PR_Fingerprint_Index::release($fp); $stats['errors'][] = 'Falha ao criar pauta: '.$source['name']; continue; }
+                    PR_Fingerprint_Index::commit($fp,(int)$id);
                     update_post_meta($id, self::META_ID, $fp);
                     update_post_meta($id, '_pra_source_url', $link);
                     update_post_meta($id, '_pra_source_name', $source['name']);

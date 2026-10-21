@@ -10,7 +10,8 @@ $GLOBALS['opts']=[];$GLOBALS['meta']=[];$GLOBALS['posts']=[];$GLOBALS['calls']=[
 function add_action(...$args){} function add_filter(...$args){} function add_shortcode(...$args){}
 function wp_parse_args($args,$defaults){return array_merge($defaults,(array)$args);}
 function get_option($key,$default=false){return $GLOBALS['opts'][$key]??$default;}
-function add_option($key,$value,...$args){$GLOBALS['opts'][$key]=$value;return true;}
+function add_option($key,$value,...$args){if(array_key_exists($key,$GLOBALS['opts']))return false;$GLOBALS['opts'][$key]=$value;return true;}
+function delete_option($key){unset($GLOBALS['opts'][$key]);return true;}
 function update_option($key,$value,...$args){$GLOBALS['opts'][$key]=$value;return true;}
 function wp_next_scheduled(...$args){return false;}function wp_schedule_event(...$args){}
 function term_exists($name,$tax){return isset($GLOBALS['terms'][$name])?['term_id'=>$GLOBALS['terms'][$name]]:false;}
