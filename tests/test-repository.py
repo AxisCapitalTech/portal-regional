@@ -65,3 +65,13 @@ assert 'new URL(endpoint' in aero_js and 'textContent' in aero_js
 assert "'enabled'=>0" in official
 assert 'normalize_manual_item' in official and 'manual_link' in official
 print('OK V9 AERO, licença comercial bloqueada e fallback assistido')
+
+# Etapa 3: fonte, privacidade, páginas reais e controles de leitura.
+assert '_pra_source_name' in single and 'pr1-related' in single and 'the_tags(' in single
+assert '<time datetime=' in single and 'get_author_posts_url' in single
+assert "get_page_by_path($slug)" in footer and "get_privacy_policy_url()" in footer
+assert "get_privacy_policy_url() && shortcode_exists('pra_newsletter')" in front
+assert "['original']??" in front and "Título na origem:" in front
+assert "is_front_page() || (bool)get_query_var('pr1_aero')" in theme_functions
+assert "localStorage.setItem" in v7js and "localStorage.getItem" in v7js
+print('OK Etapa 3: atribuição, política, UX e carregamento AERO condicional')

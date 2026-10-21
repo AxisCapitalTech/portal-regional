@@ -3,6 +3,7 @@
 <p>Projeto de jornalismo regional com informações de interesse público. Publicidade identificada e apuração editorial responsável.</p>
 <small>© <?php echo esc_html(wp_date('Y')); ?> · <?php echo esc_html(regional_public_brand()); ?><?php if(wp_get_environment_type() !== 'production'): ?> · Marca provisória em homologação<?php endif; ?></small></div>
 <div class="pr1-footer-coverage">Arapongas · Londrina · Maringá · Apucarana<br>Paraná · Brasil</div>
-<div class="pr1-footer-actions"><a href="<?php echo esc_url(home_url('/')); ?>">Página inicial</a><a href="<?php echo esc_url(home_url('/?s=')); ?>">Pesquisar</a><a href="<?php echo esc_url(home_url('/#processo-editorial')); ?>">Como verificamos</a><span>Contato e política editorial: configurar antes do lançamento</span></div>
+<div class="pr1-footer-actions"><a href="<?php echo esc_url(home_url('/')); ?>">Página inicial</a><a href="<?php echo esc_url(home_url('/?s=')); ?>">Pesquisar</a><a href="<?php echo esc_url(home_url('/#processo-editorial')); ?>">Como verificamos</a><?php foreach(['expediente'=>'Expediente','contato'=>'Contato','politica-editorial'=>'Política editorial e correções','direito-de-resposta'=>'Direito de resposta e remoção','termos-de-uso'=>'Termos de uso'] as $slug=>$label): $page=get_page_by_path($slug); if(!$page || get_post_status($page)!=='publish')continue; ?><a href="<?php echo esc_url(get_permalink($page)); ?>"><?php echo esc_html($label); ?></a><?php endforeach; ?>
+<?php $privacy=get_privacy_policy_url(); if($privacy): ?><a href="<?php echo esc_url($privacy); ?>">Privacidade</a><?php endif; ?></div>
 </div></footer>
 <?php wp_footer(); ?></body></html>

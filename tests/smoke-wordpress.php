@@ -25,6 +25,8 @@ require_condition(class_exists('PR1_Aero_Bridge'), 'AERO weather bridge initiali
 require_condition(file_exists(get_template_directory().'/page-pr1-aero.php'), 'AERO dedicated template exists');
 require_condition(file_exists(get_template_directory().'/assets/pr1-aero.js'), 'AERO frontend controller exists');
 require_condition(in_array('maringa',PR1_Aero_Bridge::city_ids(),true), 'AERO city catalog installed');
+require_condition(file_exists(get_template_directory().'/assets/pr1-v7.js'), 'Reading preferences script installed');
+require_condition((string)get_privacy_policy_url()==='', 'Test installation has no privacy policy and must not show newsletter');
 
 require_condition(function_exists('regional_public_brand') && regional_public_brand() === 'PR1 News', 'provisional public brand default');
 require_condition(regional_brand_mark() === 'PR1', 'provisional brand mark default');

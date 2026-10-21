@@ -56,7 +56,9 @@ add_action('wp_enqueue_scripts', function () {
   wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], '0.9.0');
   wp_enqueue_style('regional-v7', get_template_directory_uri().'/assets/pr1-v7.css', ['regional-theme'], '0.9.0');
   wp_enqueue_script('regional-v7-reading', get_template_directory_uri().'/assets/pr1-v7.js', [], '0.9.0', true);
-  wp_enqueue_script('regional-aero', get_template_directory_uri().'/assets/pr1-aero.js', [], '0.9.0', true);
+  if(is_front_page() || (bool)get_query_var('pr1_aero') || is_page_template('page-pr1-aero.php')) {
+    wp_enqueue_script('regional-aero', get_template_directory_uri().'/assets/pr1-aero.js', [], '0.9.0', true);
+  }
 });
 add_action('widgets_init', function () {
   register_sidebar(['name'=>'Barra lateral','id'=>'regional-sidebar','description'=>'Espaço para anúncios identificados, banners e informações institucionais','before_widget'=>'<section class="panel sidebar-widget">','after_widget'=>'</section>','before_title'=>'<h3 class="widget-title">','after_title'=>'</h3>']);

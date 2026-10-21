@@ -63,7 +63,7 @@
      <article class="pr1-official-item">
        <div class="pr1-official-meta"><span><?php echo esc_html($entry['city']); ?></span><time><?php echo esc_html($entry['date']); ?></time></div>
        <h3><a href="<?php echo esc_url($entry['url']); ?>" target="_blank" rel="noopener noreferrer nofollow external"><?php echo esc_html($entry['title']); ?> <span aria-hidden="true">↗</span></a></h3>
-       <p>Fonte: <?php echo esc_html($entry['source']); ?></p>
+       <p>Fonte: <?php echo esc_html($entry['source']); ?></p><p class="pr1-official-original">Título na origem: <?php echo esc_html($entry['original']??$entry['title']); ?></p>
      </article>
    <?php endforeach; ?>
    </div>
@@ -98,7 +98,7 @@
   </div>
   <aside class="pr1-sidebar" aria-label="Comunidade e publicidade">
    <section class="panel"><span class="pr1-panel-label">COMUNIDADE</span><h3>Notícias da sua cidade</h3><p>Boletim regional: inscrições e disparos só serão ativados após configuração e política de privacidade.</p>
-    <?php if(shortcode_exists('pra_newsletter')): echo do_shortcode('[pra_newsletter]'); else: ?><div class="pr1-inactive">Inscrições não ativadas</div><?php endif; ?>
+    <?php if(get_privacy_policy_url() && shortcode_exists('pra_newsletter')): echo do_shortcode('[pra_newsletter]'); else: ?><div class="pr1-inactive">Inscrições indisponíveis até aprovação da política de privacidade.</div><?php endif; ?>
    </section>
    <?php if(shortcode_exists('pra_anuncios')) echo do_shortcode('[pra_anuncios position="sidebar" limit="3"]'); ?>
    <?php if(is_active_sidebar('regional-sidebar')): dynamic_sidebar('regional-sidebar'); else: ?><section class="panel"><span class="pr1-panel-label">PUBLICIDADE</span><h3>Espaço comercial</h3><p>Reservado para futuras campanhas, sempre identificadas.</p><div class="pr1-inactive">Nenhum anunciante ativo</div></section><?php endif; ?>
