@@ -25,3 +25,15 @@ $dupe='<h3><a href="'.$tests['maringa'][0].'">'.$tests['maringa'][1].'</a></h3><
 if(count(PR_Source_Parser::extract($dupe,'maringa'))!==1){fwrite(STDERR,"FAIL duplicate\n");exit(1);} echo "OK duplicate\n";
 $mal='<h3><a href="https://www.maringa.pr.gov.br.evil.example/noticias/teste/12345">Notícia falsa em domínio malicioso teste</a></h3>';
 if(count(PR_Source_Parser::extract($mal,'maringa'))!==0){fwrite(STDERR,"FAIL deceptive hostname\n");exit(1);}echo "OK host spoofing\n";
+
+$not_article=[
+  'https://www.apucarana.pr.gov.br/site/noticias/',
+  'https://www.apucarana.pr.gov.br/site/secretarias/',
+  'https://www.apucarana.pr.gov.br/site/contato/',
+  'https://www.apucarana.pr.gov.br/site/portal-da-transparencia/',
+  'https://www.apucarana.pr.gov.br/site/ouvidoria/'
+];
+foreach($not_article as $url){
+  if(PR_Source_Parser::canonical($url,'apucarana')!==''){fwrite(STDERR,"FAIL institutional Apucarana URL: $url\n");exit(1);}
+  echo "OK institutional slug excluded $url\n";
+}

@@ -6,7 +6,7 @@ final class PR_Source_Parser {
     'arapongas' => ['host'=>'arapongas.atende.net','path'=>'~^/cidadao/noticia/(?!categoria/)[a-z0-9-]+/?$~i'],
     'londrina' => ['host'=>'blog.londrina.pr.gov.br','path'=>'~^/$~', 'query'=>'p'],
     'maringa'  => ['host'=>'www.maringa.pr.gov.br','path'=>'~^/noticias/[a-z0-9-]+/[0-9]+/?$~i'],
-    'apucarana'=> ['host'=>'www.apucarana.pr.gov.br','path'=>'~^/site/[a-z0-9-]+/?$~i'],
+    'apucarana'=> ['host'=>'www.apucarana.pr.gov.br','path'=>'~^/site/(?!noticias/?$|secretarias/?$|contato/?$|ouvidoria/?$|portal-da-transparencia/?$|transparencia/?$|licitacoes/?$|concursos/?$|legislacao/?$|prefeitura/?$|servicos/?$|expediente/?$|galeria/?$|fotos/?$|videos/?$|pagina/?$|programas/?$|institucional/?$)[a-z0-9-]+/?$~i'],
     'aen'      => ['host'=>'www.parana.pr.gov.br','path'=>'~^/aen/Noticia/[a-z0-9-]+/?$~i'],
   ];
   public static function canonical(string $href, string $kind): string {

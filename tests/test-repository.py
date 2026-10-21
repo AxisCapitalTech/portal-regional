@@ -65,3 +65,12 @@ assert 'new URL(endpoint' in aero_js and 'textContent' in aero_js
 assert "'enabled'=>0" in official
 assert 'normalize_manual_item' in official and 'manual_link' in official
 print('OK V9 AERO, licença comercial bloqueada e fallback assistido')
+
+# Etapa 2, primeira revisão: RSS válido, administrador e menu institucional.
+assert "'rss'=>'https://blog.londrina.pr.gov.br/?feed=rss2'" in official
+assert "add_action('admin_init',[__CLASS__,'ensure_schedule']);" in official
+assert "add_action('init',[__CLASS__,'ensure_schedule']);" not in official
+assert 'Fonte inacessível a partir deste servidor' in official
+parser=(root/'wp-content/plugins/portal-regional-agentes/includes/class-pra-source-parser.php').read_text()
+assert 'portal-da-transparencia' in parser and 'ouvidoria' in parser
+print('OK Etapa 2, ajustes de RSS, admin e filtros institucionais')

@@ -11,7 +11,7 @@ final class PR_Official {
   private const META='_pra_source_fingerprint';
   private const SOURCES=[
     'arapongas'=>['label'=>'Prefeitura de Arapongas','url'=>'https://arapongas.atende.net/cidadao/noticia','city'=>'Arapongas','kind'=>'html'],
-    'londrina'=>['label'=>'Blog Oficial de Londrina','url'=>'https://blog.londrina.pr.gov.br/','rss'=>'https://blog.londrina.pr.gov.br/feed/','city'=>'Londrina','kind'=>'rss-html'],
+    'londrina'=>['label'=>'Blog Oficial de Londrina','url'=>'https://blog.londrina.pr.gov.br/','rss'=>'https://blog.londrina.pr.gov.br/?feed=rss2','city'=>'Londrina','kind'=>'rss-html'],
     'maringa'=>['label'=>'Prefeitura de Maringá','url'=>'https://www.maringa.pr.gov.br/noticias','city'=>'Maringá','kind'=>'html'],
     'apucarana'=>['label'=>'Prefeitura de Apucarana','url'=>'https://www.apucarana.pr.gov.br/site/noticias/','city'=>'Apucarana','kind'=>'html'],
     'aen'=>['label'=>'Agência Estadual de Notícias (Paraná)','url'=>'https://www.parana.pr.gov.br/aen/arquivo','city'=>'Paraná','kind'=>'html']
@@ -22,7 +22,7 @@ final class PR_Official {
     add_action('admin_post_pra_official_run',[__CLASS__,'manual']);
     add_action('admin_post_pra_official_link',[__CLASS__,'manual_link']);
     add_action(self::EVENT,[__CLASS__,'collect']);
-    add_action('init',[__CLASS__,'ensure_schedule']);
+    add_action('admin_init',[__CLASS__,'ensure_schedule']);
   }
   private static function defaults(): array {return ['enabled'=>0,'aen'=>1,'arapongas'=>1,'londrina'=>1,'maringa'=>1,'apucarana'=>1];}
   private static function options(): array {return wp_parse_args((array)get_option(self::OPT,[]),self::defaults());}
@@ -109,7 +109,7 @@ final class PR_Official {
       'timeout'=>15,'redirection'=>2,'limit_response_size'=>2000000,
       'headers'=>['Accept'=>'text/html','User-Agent'=>'PortalRegionalTriagem/0.5 (pautas com atribuicao; contato editorial no portal)']
     ]);
-    if(is_wp_error($res))throw new RuntimeException('Conexão indisponível');
+    if(is_wp_error($res))throw new RuntimeException($key==='maringa'?'Fonte inacessível a partir deste servidor; manter conector assistido.':'Conexão indisponível');
     if((int)wp_remote_retrieve_response_code($res)!==200)throw new RuntimeException('HTTP '.(int)wp_remote_retrieve_response_code($res));
     $content_type = (string) wp_remote_retrieve_header($res, 'content-type');
     if ($content_type && !preg_match('~(?:text/html|application/xhtml\+xml)~i', $content_type)) throw new RuntimeException('Resposta não é HTML');
