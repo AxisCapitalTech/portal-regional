@@ -1,0 +1,90 @@
+name: Validar portal WordPress
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php-and-tests:
+    name: PHP ${{ matrix.php }} + verificações
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, dom, xml
+          coverage: none
+      - name: Validar sintaxe PHP
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do php -l "$file"; done < <(find wp-content tests -name '*.php' -print0)
+      - name: Testar parser e URLs das cidades
+        run: php tests/test-source-parser.php
+      - name: Impedir publicação de pautas brutas
+        run: php tests/test-publication-guard.php
+      - name: Testar autorização editorial vinculada ao conteúdo
+        run: php tests/test-approval.php
+      - name: Testar coleta integrada sintética das cinco fontes
+        run: php tests/test-official-collect.php
+      - name: Validar estrutura e cidades prioritárias
+        run: python3 tests/test-repository.py
+      - name: Gerar pacotes WordPress
+        if: matrix.php == '8.2'
+        shell: bash
+        run: |
+          mkdir -p dist
+          (cd wp-content/plugins && zip -qr ../../../dist/portal-regional-agentes.zip portal-regional-agentes)
+          (cd wp-content/themes && zip -qr ../../../dist/portal-regional-tema.zip portal-regional-tema)
+      - uses: actions/upload-artifact@v4
+        if: matrix.php == '8.2'
+        with:
+          name: portal-regional-wordpress
+          path: dist/*.zip
+          if-no-files-found: error
+
+  wordpress-smoke:
+    name: WordPress real + MariaDB
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: portalregional
+          MARIADB_USER: portal
+          MARIADB_PASSWORD: testpassword
+          MARIADB_ROOT_PASSWORD: testrootpassword
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, dom, xml, mysqli, pdo_mysql, curl
+          coverage: none
+      - name: Instalar WordPress de teste via WP-CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          mkdir -p /tmp/portal-wp
+          php /tmp/wp-cli.phar core download --path=/tmp/portal-wp --allow-root
+          php /tmp/wp-cli.phar config create --path=/tmp/portal-wp --dbname=portalregional --dbuser=portal --dbpass=testpassword --dbhost=127.0.0.1:3306 --allow-root
+          php /tmp/wp-cli.phar core install --path=/tmp/portal-wp --url=http://localhost:8088 --title='Portal Regional Homologação' --admin_user=testadmin --admin_password='TemporarySmokeTestOnly_820!' --admin_email=test@example.invalid --skip-email --allow-root
+          cp -a wp-content/plugins/portal-regional-agentes /tmp/portal-wp/wp-content/plugins/
+          cp -a wp-content/themes/portal-regional-tema /tmp/portal-wp/wp-content/themes/
+          php /tmp/wp-cli.phar plugin activate portal-regional-agentes --path=/tmp/portal-wp --allow-root
+          php /tmp/wp-cli.phar theme activate portal-regional-tema --path=/tmp/portal-wp --allow-root
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/smoke-wordpress.php" --path=/tmp/portal-wp --allow-root
