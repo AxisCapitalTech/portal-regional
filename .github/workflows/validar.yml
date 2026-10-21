@@ -42,8 +42,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          (cd wp-content/plugins && zip -qr ../../../dist/portal-regional-agentes.zip portal-regional-agentes)
-          (cd wp-content/themes && zip -qr ../../../dist/portal-regional-tema.zip portal-regional-tema)
+          (cd wp-content/plugins && zip -qr ../../dist/portal-regional-agentes.zip portal-regional-agentes)
+          (cd wp-content/themes && zip -qr ../../dist/portal-regional-tema.zip portal-regional-tema)
       - uses: actions/upload-artifact@v4
         if: matrix.php == '8.2'
         with:
