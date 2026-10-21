@@ -155,7 +155,24 @@ final class PR_Official {
     $sitemapPolicy=self::robots_policy($selected);
     $res=self::source_get($selected,$sitemapPolicy,['Accept'=>'application/xml,text/xml']);
     if(is_wp_error($res)||wp_remote_retrieve_response_code($res)!==200)throw new RuntimeException('Sitemap indisponível; usar conector manual');
-    $links=PR_Official_Robots::sitemap_urls(wp_remote_retrieve_body($res),'arapongas',time());
+    $xml=(string)wp_remote_retrieve_body($res);
+    $links=PR_Official_Robots::sitemap_urls($xml,'arapongas',time());
+    if(!$links){
+      // A fonte pode declarar um sitemapindex. No máximo dois filhos, mesma
+      // origem HTTPS e robots verificado a cada arquivo; sem recursão.
+      foreach(PR_Official_Robots::sitemap_children($xml,time()) as $child){
+        $parts=wp_parse_url($child);
+        if(!is_array($parts)||($parts['scheme']??'')!=='https'
+          ||($parts['host']??'')!==$host||!empty($parts['user'])||!empty($parts['pass']))continue;
+        try{
+          $childPolicy=self::robots_policy($child);
+          $childResponse=self::source_get($child,$childPolicy,['Accept'=>'application/xml,text/xml']);
+          if(is_wp_error($childResponse)||wp_remote_retrieve_response_code($childResponse)!==200)continue;
+          $links=PR_Official_Robots::sitemap_urls((string)wp_remote_retrieve_body($childResponse),'arapongas',time());
+          if($links)break;
+        }catch(RuntimeException $error){break;} // respetar restrições sem contornar bloqueios
+      }
+    }
     if(!$links)throw new RuntimeException('Sitemap sem notícias recentes no formato esperado; conector manual');
     $items=[];
     foreach(array_slice($links,0,2) as $link){

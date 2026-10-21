@@ -49,6 +49,29 @@ final class PR_Official_Robots {
     }
     return ['allowed'=>$allowed,'delay'=>$delay,'sitemaps'=>array_values(array_unique($sitemaps))];
   }
+  /**
+   * Only children of a <sitemapindex> are returned. Never follows arbitrary XML,
+   * external domains, nested indexes or more than two child files per run.
+   */
+  public static function sitemap_children(string $xml,int $now):array {
+    if(strlen($xml)>2000000)return [];
+    $prior=libxml_use_internal_errors(true);
+    try{$root=simplexml_load_string($xml,'SimpleXMLElement',LIBXML_NONET);}
+    finally{libxml_clear_errors();libxml_use_internal_errors($prior);}
+    if(!$root||$root->getName()!=='sitemapindex')return [];
+    $out=[];
+    foreach($root->sitemap??[] as $node){
+      $url=trim((string)$node->loc);
+      if($url===''||strlen($url)>500)continue;
+      if(isset($node->lastmod)){
+        $updated=strtotime((string)$node->lastmod);
+        if($updated && ($updated<$now-48*3600||$updated>$now+3600))continue;
+      }
+      $out[]=$url;
+      if(count($out)>=2)break;
+    }
+    return $out;
+  }
   public static function sitemap_urls(string $xml,string $kind,int $now):array {
     if(strlen($xml)>2000000)return [];
     $prior=libxml_use_internal_errors(true);

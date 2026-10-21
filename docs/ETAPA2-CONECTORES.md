@@ -33,3 +33,7 @@ GitHub Actions: https://github.com/AxisCapitalTech/portal-regional/actions/runs/
 
 Não fazer merge/deploy; sem publicação automática, IA, e-mail, WhatsApp, push ou cobrança. As pautas são inseridas em `post_status='pending'`, e as regras `prevent_unreviewed_publish` e `record_editorial_approval` foram preservadas.
 
+
+## Complemento da revisão — índice de sitemaps
+
+O conector de Arapongas agora tenta `<sitemapindex>` caso o sitemap declarado não traga `<urlset>` com matérias recentes. Limites conservadores: até dois arquivos filhos por execução, mesmo domínio HTTPS, caminho sujeito a `robots.txt` e `Crawl-delay`, sem recursão; notícias só entram como `pending`. Teste sintético em `tests/test-robots.php` cobre índice recente, índice antigo, URLSet e tamanho máximo. **Ainda falta validar em rede real** e observar se o formato do sitemap oficial coincide.
