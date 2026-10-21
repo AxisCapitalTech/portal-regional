@@ -20,6 +20,7 @@ final class PR_Official {
     add_action('admin_menu',[__CLASS__,'menu']);
     add_action('admin_post_pra_official_save',[__CLASS__,'save']);
     add_action('admin_post_pra_official_run',[__CLASS__,'manual']);
+    add_action('admin_post_pra_official_link',[__CLASS__,'manual_link']);
     add_action(self::EVENT,[__CLASS__,'collect']);
     add_action('init',[__CLASS__,'ensure_schedule']);
   }
@@ -54,6 +55,20 @@ final class PR_Official {
     foreach(self::SOURCES as $key=>$src)echo '<p><label><input type="checkbox" name="source_'.esc_attr($key).'" value="1" '.checked((int)$o[$key],1,false).'> '.esc_html($src['label']).' <code>'.esc_html($src['kind']).'</code></label></p>';
     submit_button('Salvar fontes');echo '</form>';
     echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="pra_official_run">';wp_nonce_field('pra_official_run');submit_button('Coletar manualmente para testar','secondary');echo '</form>';
+    echo '<h2>Conector assistido — link individual (Arapongas e Maringá)</h2>';
+    echo '<p>Use este formulário quando a página de listagem não puder ser coletada. Apenas administradores registram o URL e o título previamente conferidos na fonte. O sistema cria somente uma PAUTA PENDENTE, nunca uma reportagem publicada. O status da coleta automática continua independente.</p>';
+    if(isset($_GET['link_status'])) {
+      $notice=sanitize_key((string)$_GET['link_status']);
+      $notices=['created'=>'Pauta pendente criada. Revise o texto antes de publicar.','duplicate'=>'O link já estava registrado.','invalid'=>'Fonte, link ou título não permitidos.','error'=>'Falha ao salvar a pauta.'];
+      if(isset($notices[$notice])) echo '<div class="notice notice-info"><p>'.esc_html($notices[$notice]).'</p></div>';
+    }
+    echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="pra_official_link">';
+    wp_nonce_field('pra_official_link');
+    echo '<p><label>Fonte <select name="source" required><option value="arapongas">Prefeitura de Arapongas</option><option value="maringa">Prefeitura de Maringá</option></select></label></p>';
+    echo '<p><label>URL da publicação individual (HTTPS) <input type="url" name="source_url" required size="90" maxlength="600" placeholder="https://..."></label></p>';
+    echo '<p><label>Título original da fonte <input type="text" name="source_title" required size="90" maxlength="200" minlength="23"></label></p>';
+    submit_button('Salvar como pauta pendente','secondary');
+    echo '</form>';
     echo '<h2>Consultas complementares</h2><p><a target="_blank" rel="noopener noreferrer" href="https://arapongas.atende.net/diariooficial/edicao/">Diário Oficial de Arapongas</a> · <a target="_blank" rel="noopener noreferrer" href="https://portal.londrina.pr.gov.br/index.php/busca-jornal">Jornal Oficial de Londrina</a>. Documentos PDF não são ingeridos automaticamente nesta fase.</p>';
     echo '<p><strong>Notas:</strong> HTML pode mudar; feeds podem ficar indisponíveis. O painel indicará erro por fonte. Fontes com conteúdo sensível exigem revisão reforçada e toda matéria publicada deve ser escrita e verificada pela equipe editorial.</p></div>';
   }
@@ -65,6 +80,24 @@ final class PR_Official {
   public static function manual():void {
     if(!current_user_can('manage_options'))wp_die('Acesso negado.');check_admin_referer('pra_official_run');
     self::collect(true);wp_safe_redirect(admin_url('tools.php?page=pra-oficiais'));exit;
+  }
+  public static function manual_link():void {
+    if(!current_user_can('manage_options'))wp_die('Acesso negado.');
+    check_admin_referer('pra_official_link');
+    $kind=sanitize_key((string)($_POST['source']??''));
+    $url=trim((string)($_POST['source_url']??''));
+    $title=sanitize_text_field((string)($_POST['source_title']??''));
+    $valid=in_array($kind,['arapongas','maringa'],true)&&strlen($url)<=600;
+    $canonical=$valid?PR_Source_Parser::canonical($url,$kind):'';
+    if(!$canonical||mb_strlen($title,'UTF-8')<23||mb_strlen($title,'UTF-8')>200){
+      $status='invalid';
+    } else {
+      $item=['title'=>$title,'link'=>$canonical];
+      $created=self::create($item,self::SOURCES[$kind],$kind);
+      $status=in_array($created,['created','duplicate'],true)?$created:'error';
+    }
+    wp_safe_redirect(add_query_arg('link_status',$status,admin_url('tools.php?page=pra-oficiais')));
+    exit;
   }
   private static function html_items(string $key,array $src):array {
     $res=wp_safe_remote_get($src['url'],[
