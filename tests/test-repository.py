@@ -84,3 +84,20 @@ assert '--admin_password="$wp_test_password"' in workflow
 assert '-e STAGING_PASSWORD="$staging_test_password"' in workflow
 assert 'contents: read' in workflow
 print('OK Etapa 1: AERO em constante, workflow legado ausente e credenciais CI aleatórias')
+
+# Etapa 1: configuração externa segura e remoção do importador com acesso de escrita.
+assert not (root/'.github/workflows/importar-v5.yml').exists(), 'Legacy write-enabled workflow still present'
+host_fragment='alex'+'-direito'
+bridge=(root/'wp-content/themes/portal-regional-tema/includes/pr1-aero-bridge.php').read_text()
+aero_page=(root/'wp-content/themes/portal-regional-tema/page-pr1-aero.php').read_text()
+for filename in ['functions.php','includes/pr1-aero-bridge.php','page-pr1-aero.php']:
+    source=(root/'wp-content/themes/portal-regional-tema'/filename).read_text()
+    assert host_fragment not in source, 'Hardcoded personal hostname in '+filename
+assert 'regional_aero_url' not in theme_functions, 'AERO URL should not be editable in the customizer'
+assert 'PR1_AERO_HOST' in bridge and 'validated_host' in bridge
+assert '$aero_url!==\'\'' in aero_page and 'wp-config.php' in aero_page
+workflow=(root/'.github/workflows/validar.yml').read_text()
+assert workflow.count('openssl rand -hex 24') >= 2, 'CI passwords must be generated at runtime'
+assert 'tests/test-aero-host.php' in workflow and 'tests/test-aero-host-configured.php' in workflow
+assert '--admin_password="$wp_test_password"' in workflow
+print('OK etapa 1: host AERO isolado, CI aleatorio, importador excluido')

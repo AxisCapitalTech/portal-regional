@@ -1,33 +1,27 @@
-# PR1 News — Etapa 1: institucional e segurança
+# PR1 News — Etapa 1 · segurança institucional (PR para revisão)
 
-**Pull request para revisão humana. Sem merge e sem implantação.**
+**Não mesclar nem implantar sem revisão humana.** Base: commit `54ff6e1` da `main`.
 
-## AERO: origem HTTPS controlada
+## Configuração do AERO
 
-O domínio antigo foi retirado do código atual e o campo `regional_aero_url` removido do personalizador WordPress.
-
-Para ativar o painel externo AERO, o administrador deverá definir **um hostname de domínio próprio, sem protocolo, porta ou caminho**, exclusivamente no `wp-config.php` (arquivo ignorado pelo Git):
+O endereço pessoal padrão foi retirado dos arquivos atuais do tema. O endpoint externo passa a ser habilitado apenas se o operador definir um domínio sob seu controle em `wp-config.php` (fora do Git):
 
 ```php
 define('PR1_AERO_HOST', 'clima.exemplo.com.br');
 ```
 
-Esse domínio é **apenas ilustrativo**; só habilite após confirmar o controle, HTTPS e a segurança dos dados de raios. Se a constante estiver ausente ou inválida, o tema **não gera link ou iframe** para o AERO externo. O módulo de previsão local do PR1 não muda.
+A constante recebe apenas um hostname DNS: sem `https://`, porta, caminho, parâmetros ou credenciais. A função `validated_host` forma a allowlist única para o link e o `iframe`. Se a constante estiver ausente ou inválida, nenhum URL externo ou iframe é emitido; um aviso aparece na página AERO. O widget de previsão local fica preservado e continua bloqueado por padrão em produção sem licença comercial.
 
-Não use domínio pessoal, URL com barra, querystring, localhost ou endereço IP. A validação também rejeita hosts DNS malformados. O histórico Git anterior ao PR permanece preservado; a limpeza refere-se à árvore atual da branch.
+**Antes de habilitar um hostname na implantação:** assegurar que há TLS válido, domínio efetivamente controlado, conteúdo revisado e raio LIVE corrigido no serviço externo. O host antigo pode continuar nos commits históricos; a alteração do Git atual não apaga o histórico de versões.
 
-## Workflow removido
-O importador legado `.github/workflows/importar-v5.yml` era capaz de decodificar código base64 e fazer push em `main` com `contents: write`. O arquivo é removido na branch, sem reescrever o histórico.
+## Pipeline
 
-## Senhas temporárias de CI
-A instalação WordPress com WP-CLI e os testes de autenticação do contêiner usam `openssl rand -hex 24`, somente em variáveis de ambiente locais ao job, sem imprimir a senha. Não há geração/alteração de credenciais reais.
+- O workflow legado `.github/workflows/importar-v5.yml` foi removido da árvore atual. Ele tinha `contents: write` e podia fazer push diretamente à `main`.
+- O pipeline restante `.github/workflows/validar.yml` possui `permissions: contents: read` e executa testes do WordPress e plugins.
+- Senhas de administrador no smoke e de Basic Auth no Docker passam a ser geradas, por execução, com `openssl rand -hex 24`. São utilizadas somente no runner e não devem ser registradas em logs.
+- Adicionados testes independentes para validar hostname, rejeitar URLs inseguras e verificar o caso sem configuração.
+- Preservados `post_status='pending'`, `prevent_unreviewed_publish`, `record_editorial_approval` e coleta desativada por padrão.
 
-## Testes e limitações
-- `tests/test-aero-host.php`: rejeição de URL, porta, credenciais, IP, barra e host inválido; garante desativação por padrão.
-- `tests/test-aero-host-configured.php`: uma origem HTTPS autorizada com hostname definido antes da carga do tema.
-- `tests/test-repository.py`: ausência do hostname pessoal, workflow legado, configuração antiga e credenciais fixas.
-- `tests/smoke-wordpress.php`: smoke da configuração desativada e validação de DNS.
-- O fluxo editorial (pautas `pending`, SHA-256, aprovações humanas) não foi alterado; `enabled=0` permanece.
-- Nenhuma implantação, cron, IA, newsletter, cobrança ou serviço de notificação foi ativado.
+## Pendências explícitas
 
-**Pendente:** Etapa 2 (conectores), Etapa 3 (legal/SEO/UX) e Etapa 4 (repositório AERO separado). O problema de raios desatualizados deve ser resolvido antes de incorporar o AERO em produção.
+Conectores/robots/frescor (Etapa 2); páginas legais/SEO/UX e governança editorial (Etapa 3); correção do AERO V13 no **repositório próprio**, quando autorizado e disponível (Etapa 4). Nenhum site foi implantado, domínio comprado, newsletter ou cron de produção ativado.

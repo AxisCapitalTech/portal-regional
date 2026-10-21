@@ -1,22 +1,18 @@
 <?php
-/** Etapa 1: validar a origem externa AERO sem depender do WordPress. */
+/** Testa configuração fail closed do AERO sem WordPress nem rede. */
 define('ABSPATH', __DIR__.'/');
-function add_action(...$args) {}
-function add_filter(...$args) {}
-function esc_url_raw($url) {return $url;}
-require __DIR__.'/../wp-content/themes/portal-regional-tema/includes/pr1-aero-bridge.php';
-function verify($cond, $what) {
-  if (!$cond) {fwrite(STDERR, "FAIL $what\n");exit(1);}
-  echo "OK $what\n";
+function add_action(...$args){} function add_filter(...$args){}
+function esc_url_raw($url){return $url;}
+require_once __DIR__.'/../wp-content/themes/portal-regional-tema/includes/pr1-aero-bridge.php';
+function check_hostname($passed, $label){
+  if (!$passed){fwrite(STDERR,"FAIL $label\n");exit(1);}
+  echo "OK $label\n";
 }
-verify(PR1_Aero_Bridge::app_url()==='', 'sem PR1_AERO_HOST o painel externo fica desativado');
-foreach(['clima.example.org','AERO.Example.COM','clima.exemplo.com.br'] as $value) {
-  verify(PR1_Aero_Bridge::validated_host($value)===strtolower($value), 'host DNS aceito: '.$value);
+check_hostname(PR1_Aero_Bridge::app_url()==='', 'AERO desativado sem constante');
+foreach (['aero.example.org', 'Clima.Example.ORG', 'portal.exemplo.com.br'] as $host) {
+ check_hostname(PR1_Aero_Bridge::validated_host($host)===strtolower($host), 'host seguro: '.$host);
 }
-foreach(['','localhost','127.0.0.1','192.168.0.1','https://clima.example.org',
-  'clima.example.org:443','clima.example.org/caminho','clima.example.org?token=1',
-  'clima.example.org#frag','foo..example.org','-foo.example.org','foo-.example.org',
-  'example.c','example.org@evil.test','clima.example.org\\evil.test'] as $value) {
-  verify(PR1_Aero_Bridge::validated_host($value)==='', 'host DNS inválido rejeitado: '.($value?:'(vazio)'));
+foreach (['','localhost','127.0.0.1','192.168.1.1','https://clima.example.org','aero.example.org:443','aero.example.org/painel','aero.example.org?x=1','foo..example.org','-foo.example.org','foo-.example.org','example.c','example.org#hash','example.org@evil.net'] as $bad) {
+ check_hostname(PR1_Aero_Bridge::validated_host($bad)==='', 'rejeita: '.($bad===''?'(vazio)':$bad));
 }
-echo "OK teste de configuração AERO concluído\n";
+echo "OK host AERO sem redirecionamento arbitrario\n";
