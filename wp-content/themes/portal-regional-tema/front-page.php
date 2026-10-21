@@ -51,7 +51,7 @@
    <?php $official_links=require get_template_directory().'/includes/pr1-links-oficiais-v8.php';
    foreach ($official_links as $entry):
       $host=wp_parse_url($entry['url'], PHP_URL_HOST);
-      if (!in_array($host,['arapongas.atende.net','blog.londrina.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br'],true)) continue;
+      if (!in_array($host,['arapongas.atende.net','blog.londrina.pr.gov.br','www.maringa.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br'],true)) continue;
    ?>
      <article class="pr1-official-item">
        <div class="pr1-official-meta"><span><?php echo esc_html($entry['city']); ?></span><time><?php echo esc_html($entry['date']); ?></time></div>
