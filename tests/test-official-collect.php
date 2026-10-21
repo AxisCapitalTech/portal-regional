@@ -37,7 +37,7 @@ function wp_remote_retrieve_response_code($r){return $r['status']??0;}
 function wp_remote_retrieve_body($r){return $r['body']??'';}
 function wp_remote_retrieve_header($r,$header){return $r['type']??'';}
 function fetch_feed($url){return new WP_Error('simulate fallback');}
-function wp_parse_url($url){return parse_url($url);}
+function wp_parse_url($url,$component=-1){return parse_url($url,$component);}
 function sanitize_text_field($s){return trim(strip_tags($s));}
 function wp_strip_all_tags($s){return strip_tags($s);}function esc_url_raw($s){return $s;}
 function esc_url($s){return $s;} function wp_kses_post($s){return $s;}function esc_html($s){return htmlspecialchars((string)$s);}
