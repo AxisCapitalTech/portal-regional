@@ -26,6 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          php -v
           while IFS= read -r -d '' file; do php -l "$file"; done < <(find wp-content tests -name '*.php' -print0)
       - name: Testar hostname seguro do AERO
         run: |
@@ -49,6 +50,8 @@ jobs:
         run: php tests/test-approval.php
       - name: Testar coleta integrada sintética das cinco fontes
         run: php tests/test-official-collect.php
+      - name: Impedir diagnóstico externo automático
+        run: python3 tests/test-ci-policy.py
       - name: Validar estrutura e cidades prioritárias
         run: python3 tests/test-repository.py
       - name: Gerar pacotes WordPress
