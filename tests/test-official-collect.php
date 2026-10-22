@@ -63,6 +63,7 @@ class MockDB {
  function query($q){
   [$sql,$args]=$q;
   if(str_contains($sql,'wp_options')){
+   if(str_starts_with($sql,'INSERT')){[$key,$value]=$args;if(isset($GLOBALS['opts'][$key]))return 0;$GLOBALS['opts'][$key]=$value;return 1;}
    if(str_starts_with($sql,'UPDATE')){[$next,$key,$old]=$args;if(($GLOBALS['opts'][$key]??null)!==$old)return 0;$GLOBALS['opts'][$key]=$next;return 1;}
    [$key,$old]=$args;if(($GLOBALS['opts'][$key]??null)!==$old)return 0;unset($GLOBALS['opts'][$key]);return 1;
   }

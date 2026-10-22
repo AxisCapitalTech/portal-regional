@@ -10,7 +10,9 @@ final class PR_Collector_Lock {
   public static function acquire():?self {
     global $wpdb;
     $token=bin2hex(random_bytes(16));$value=$token.'|'.(time()+self::TTL);
-    if(add_option(self::KEY,$value,'',false))return new self($token,$value);
+    $inserted=$wpdb->query($wpdb->prepare("INSERT IGNORE INTO {$wpdb->options} (option_name,option_value,autoload) VALUES (%s,%s,'no')",self::KEY,$value));
+    if($inserted===false)throw new RuntimeException('Erro SQL ao criar lock de coleta');
+    if($inserted===1){wp_cache_delete(self::KEY,'options');return new self($token,$value);}
     $old=$wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name=%s",self::KEY));
     if($old===null)return null;
     $parts=explode('|',(string)$old);$expires=(int)end($parts);
