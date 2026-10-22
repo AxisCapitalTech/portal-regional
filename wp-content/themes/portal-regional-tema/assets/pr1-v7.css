@@ -50,7 +50,7 @@ html{scroll-behavior:smooth}body.pr1-v7{background:var(--pr1-paper);color:var(--
 .pr1-aero-reading{min-height:87px;background:#ffffff0c;border:1px solid #ffffff21;border-radius:12px;padding:18px;display:grid;gap:6px}
 .pr1-aero-reading strong{font-size:24px;color:#fff}
 .pr1-aero-reading span{font-size:13px;color:#ecf3ff}
-.pr1-aero-reading small{font-size:11px;color:#bac9e1}
+.pr1-aero-reading small{font-size:12px;color:#bac9e1}
 .pr1-aero-source{margin:11px 0 0!important;font-size:11px!important}
 .pr1-aero-source a{color:#cce7ff;text-decoration:underline}
 .pr1-aero-page .pr1-aero-top{background:linear-gradient(110deg,#081b32,#103b78);border-radius:17px;padding:36px;color:white;margin:16px 0}
@@ -68,3 +68,26 @@ html{scroll-behavior:smooth}body.pr1-v7{background:var(--pr1-paper);color:var(--
 .pr1-aero-embed iframe{width:100%;height:min(87vh,950px);min-height:560px;border:0}
 .pr1-aero-disclaimer{font-size:12px;color:#50617b;line-height:1.6}
 @media(max-width:700px){.pr1-aero-home-top{display:block}.pr1-aero-link{margin-top:9px}.pr1-aero-home{padding:20px}.pr1-aero-embed iframe{height:75vh;min-height:520px}}
+
+/* Etapa 3 — áreas de toque adequadas e tipografia editorial. */
+.pr1-v7 .pr1-tool,.pr1-v7 .pr1-nav-list a,.pr1-v7 .pr1-aero-city,.pr1-v7 .pr1-btn-primary,.pr1-v7 .pr1-btn-secondary,.pr1-v7 .pr1-aero-load{min-height:44px}
+.pr1-v7 .pr1-official-item p,.pr1-v7 .pr1-official-meta,.pr1-v7 .pr1-official-disclosure,.pr1-v7 .pr1-kicker-dark{font-size:max(12px,1em)}
+.pr1-article-tags{padding:16px 0;border-top:1px solid var(--pr1-line)}
+.pr1-related{margin:25px 0;padding:20px;background:#f5f7fb;border-radius:12px}
+.pr1-related h2{font-size:21px;margin:0 0 10px}
+.pr1-related ul{margin:0;padding-left:22px}
+.pr1-related li{padding:6px 0}
+.pr1-official-original{font-size:12px;line-height:1.5;color:#63718a}
+
+/* Auditoria: fontes pequenas, alvos de toque e safe areas */
+.pr1-v7 .pr1-ribbon,.pr1-v7 .pr1-kicker,.pr1-v7 .pr1-panel-label,
+.pr1-v7 .pr1-red-label,.pr1-v7 .pr1-crumb,.pr1-v7 .pr1-city-status,
+.pr1-v7 .pr1-kicker-dark,.pr1-v7 .pr1-official-meta,.pr1-v7 .pr1-aero-source,
+.pr1-v7 .pr1-hero-note,.pr1-v7 .pr1-identity-word small,.pr1-v7 .pr1-edition,
+.pr1-v7 .pr1-footer-actions,.pr1-v7 .pr1-footer-coverage,.pr1-v7 .pr1-footer-brand small,
+.pr1-v7 .pr1-official-item p,.pr1-v7 .pr1-city-inactive small{font-size:max(12px,.75rem)}
+.pr1-v7 .pr1-tool,.pr1-v7 .pr1-aero-city,.pr1-v7 .pr1-btn-primary,.pr1-v7 .pr1-btn-secondary,
+.pr1-v7 .pr1-quick-cities a,.pr1-v7 .pr1-aero-link,.pr1-v7 .pr1-nav-list a
+{min-height:44px;display:inline-flex;align-items:center}
+.pr1-v7 .pr1-mast{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-top:env(safe-area-inset-top,0px)}
+.pr1-v7 .pr1-footer{padding-bottom:calc(38px + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}

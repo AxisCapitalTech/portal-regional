@@ -9,27 +9,9 @@
    <p class="pr1-hero-note">Notícias de fontes monitoradas só aparecem após aprovação editorial humana.</p>
   </div>
  </section>
- <?php if(wp_get_environment_type() !== 'production'): ?>
- <div class="pr1-info" role="note"><span aria-hidden="true">ⓘ</span><p><strong>V7 integrada ao WordPress — ambiente de homologação.</strong> Este ambiente é de testes. Não é um lançamento comercial; o nome PR1 News ainda depende de verificação de marca.</p></div>
- <?php endif; ?>
- <section class="pr1-quick-local" aria-label="Escolha uma cidade"><div><span class="pr1-kicker-dark">SUA REGIÃO</span><h2>Onde você quer se informar?</h2><p>Acompanhe o noticiário da sua cidade.</p></div>
-  <div class="pr1-quick-cities">
-  <?php foreach(['Arapongas','Londrina','Maringá','Apucarana'] as $city):
-    $term=get_term_by('name',$city,'category'); if($term && !is_wp_error($term)): ?>
-    <a href="<?php echo esc_url(get_category_link($term)); ?>"><?php echo esc_html($city); ?><span aria-hidden="true">↗</span></a>
-    <?php else: ?><span class="pr1-city-inactive"><?php echo esc_html($city); ?><small>Em preparação</small></span><?php endif; endforeach; ?>
-  </div>
- </section>
- <section class="pr1-aero-home" aria-labelledby="pr1-aero-home-title">
-  <div class="pr1-aero-home-top"><div><span class="pr1-kicker">AERO × PR1 NEWS</span>
-  <h2 id="pr1-aero-home-title">Meteorologia da nossa região</h2>
-  <p>Consulte condições meteorológicas de quatro cidades e abra o AERO Command Center para acompanhar o radar e outras camadas de monitoramento.</p></div>
-  <a class="pr1-aero-link" href="<?php echo esc_url(PR1_Aero_Bridge::portal_url()); ?>">Explorar painel AERO ↗</a></div>
-  <?php get_template_part('template-parts/pr1-aero-conditions'); ?>
- </section>
  <div class="pr1-section-head"><h2>Destaques da capa</h2><span>Somente notícias publicadas pela redação</span></div>
  <?php
-  $lead_term=get_term_by('name','Arapongas','category');
+  $lead_term=regional_category_for('Arapongas');
   $arapongas_lead=($lead_term && !is_wp_error($lead_term)) ? get_posts(['category'=>$lead_term->term_id,'numberposts'=>1,'post_status'=>'publish']) : [];
   $lead=$arapongas_lead?$arapongas_lead[0]:null;
   $others=get_posts(['numberposts'=>4,'post_status'=>'publish','exclude'=>$lead?[$lead->ID]:[]]);
@@ -51,6 +33,24 @@
    <?php endif; ?>
   </div>
  </div>
+ <?php if(wp_get_environment_type() !== 'production'): ?>
+ <div class="pr1-info" role="note"><span aria-hidden="true">ⓘ</span><p><strong>V7 integrada ao WordPress — ambiente de homologação.</strong> Este ambiente é de testes. Não é um lançamento comercial; o nome PR1 News ainda depende de verificação de marca.</p></div>
+ <?php endif; ?>
+ <section class="pr1-quick-local" aria-label="Escolha uma cidade"><div><span class="pr1-kicker-dark">SUA REGIÃO</span><h2>Onde você quer se informar?</h2><p>Acompanhe o noticiário da sua cidade.</p></div>
+  <div class="pr1-quick-cities">
+  <?php foreach(['Arapongas','Londrina','Maringá','Apucarana'] as $city):
+    $term=regional_category_for($city); if($term && !is_wp_error($term)): ?>
+    <a href="<?php echo esc_url(get_category_link($term)); ?>"><?php echo esc_html($city); ?><span aria-hidden="true">↗</span></a>
+    <?php else: ?><span class="pr1-city-inactive"><?php echo esc_html($city); ?><small>Em preparação</small></span><?php endif; endforeach; ?>
+  </div>
+ </section>
+ <section class="pr1-aero-home" aria-labelledby="pr1-aero-home-title">
+  <div class="pr1-aero-home-top"><div><span class="pr1-kicker">AERO × PR1 NEWS</span>
+  <h2 id="pr1-aero-home-title">Meteorologia da nossa região</h2>
+  <p>Consulte condições meteorológicas de quatro cidades e abra o AERO Command Center para acompanhar o radar e outras camadas de monitoramento.</p></div>
+  <a class="pr1-aero-link" href="<?php echo esc_url(PR1_Aero_Bridge::portal_url()); ?>">Explorar painel AERO ↗</a></div>
+  <?php get_template_part('template-parts/pr1-aero-conditions'); ?>
+ </section>
  <section class="pr1-official-links" aria-labelledby="pr1-official-heading">
    <div class="pr1-section-head"><h2 id="pr1-official-heading">Nas fontes oficiais</h2><span>Links externos selecionados em 21/10/2026</span></div>
    <p class="pr1-official-disclosure"><strong>Clipping de comunicados oficiais.</strong> Estas chamadas são referências para leitura no site de origem, não reportagens produzidas pelo PR1. Não há atualização automática nem aprovação editorial implícita de todo o conteúdo externo.</p>
@@ -63,7 +63,7 @@
      <article class="pr1-official-item">
        <div class="pr1-official-meta"><span><?php echo esc_html($entry['city']); ?></span><time><?php echo esc_html($entry['date']); ?></time></div>
        <h3><a href="<?php echo esc_url($entry['url']); ?>" target="_blank" rel="noopener noreferrer nofollow external"><?php echo esc_html($entry['title']); ?> <span aria-hidden="true">↗</span></a></h3>
-       <p>Fonte: <?php echo esc_html($entry['source']); ?></p>
+       <p>Fonte: <?php echo esc_html($entry['source']); ?></p><p class="pr1-official-original">Título na origem: <?php echo esc_html($entry['original']??$entry['title']); ?></p>
      </article>
    <?php endforeach; ?>
    </div>
@@ -78,7 +78,7 @@
  <div class="pr1-bottom">
   <div><section id="cidades" class="pr1-cities-section"><div class="pr1-section-head"><h2>Nossas cidades</h2></div><div class="pr1-city-grid">
   <?php foreach(['Arapongas','Londrina','Maringá','Apucarana'] as $city):
-    $term=get_term_by('name',$city,'category');
+    $term=regional_category_for($city);
     $items=($term && !is_wp_error($term))?get_posts(['category'=>$term->term_id,'numberposts'=>2,'post_status'=>'publish']):[];
   ?>
    <section class="pr1-city-card" aria-label="Notícias de <?php echo esc_attr($city); ?>">
@@ -89,7 +89,7 @@
    </section>
   <?php endforeach; ?></div></section>
   <?php foreach(['Paraná','Brasil'] as $area):
-   $term=get_term_by('name',$area,'category'); $items=($term && !is_wp_error($term))?get_posts(['category'=>$term->term_id,'numberposts'=>4,'post_status'=>'publish']):[]; ?>
+   $term=regional_category_for($area); $items=($term && !is_wp_error($term))?get_posts(['category'=>$term->term_id,'numberposts'=>4,'post_status'=>'publish']):[]; ?>
   <section class="pr1-regional-section" aria-label="Notícias de <?php echo esc_attr($area); ?>">
    <div class="pr1-section-head"><h2><?php echo esc_html($area); ?></h2><?php if($term && !is_wp_error($term)): ?><a href="<?php echo esc_url(get_category_link($term)); ?>">Ver editoria →</a><?php endif; ?></div>
    <?php if($items): ?><div class="stories"><?php foreach($items as $item) regional_card($item); ?></div>
@@ -98,10 +98,10 @@
   </div>
   <aside class="pr1-sidebar" aria-label="Comunidade e publicidade">
    <section class="panel"><span class="pr1-panel-label">COMUNIDADE</span><h3>Notícias da sua cidade</h3><p>Boletim regional: inscrições e disparos só serão ativados após configuração e política de privacidade.</p>
-    <?php if(shortcode_exists('pra_newsletter')): echo do_shortcode('[pra_newsletter]'); else: ?><div class="pr1-inactive">Inscrições não ativadas</div><?php endif; ?>
+    <?php if(get_privacy_policy_url() && shortcode_exists('pra_newsletter')): echo do_shortcode('[pra_newsletter]'); else: ?><div class="pr1-inactive">Inscrições indisponíveis até aprovação da política de privacidade.</div><?php endif; ?>
    </section>
    <?php if(shortcode_exists('pra_anuncios')) echo do_shortcode('[pra_anuncios position="sidebar" limit="3"]'); ?>
-   <?php if(is_active_sidebar('regional-sidebar')): dynamic_sidebar('regional-sidebar'); else: ?><section class="panel"><span class="pr1-panel-label">PUBLICIDADE</span><h3>Espaço comercial</h3><p>Reservado para futuras campanhas, sempre identificadas.</p><div class="pr1-inactive">Nenhum anunciante ativo</div></section><?php endif; ?>
+   <?php if(is_active_sidebar('regional-sidebar')): dynamic_sidebar('regional-sidebar'); else: ?><section class="panel"><span class="pr1-panel-label">PUBLICIDADE</span><h3>Publicidade — Espaço comercial</h3><p>Reservado para futuras campanhas, sempre identificadas.</p><div class="pr1-inactive">Nenhum anunciante ativo</div></section><?php endif; ?>
    <section class="panel"><span class="pr1-panel-label">COMPROMISSO EDITORIAL</span><h3>Antes de publicar, verificar</h3><p>Fontes, contexto, data, correções e aprovação humana acompanham toda notícia originada do monitoramento.</p></section>
   </aside>
  </div>

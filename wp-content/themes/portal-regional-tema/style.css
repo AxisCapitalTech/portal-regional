@@ -21,20 +21,20 @@ Text Domain: portal-regional-tema
 .pra-hidden { position:absolute; width:1px; height:1px; overflow:hidden; left:-9999px; }
 .pra-newsletter-note { font-size:13px; color:#53645e; }
 .pra-ad { display:grid; gap:8px; border:1px solid #dae2de; padding:15px; background:#fff; border-radius:12px; margin:0 0 16px; }
-.pra-ad-label { font-size:10px; letter-spacing:.11em; color:#546f68; font-weight:700; }
+.pra-ad-label { font-size:12px; letter-spacing:.11em; color:#546f68; font-weight:700; }
 .pra-ad-link { display:grid; gap:6px; text-decoration:none; color:#17332a; }
 .pra-ad-link img { display:block; width:100%; height:auto; border-radius:7px; }
 .pra-ad-link strong { font-weight:800; font-size:17px; }
 .pra-ad-link small { font-size:13px; color:#52675e; }
 
 /* V3: seções municipais com prioridade editorial e navegação acessível */
-.localities a{display:inline-block;background:#e8f1ef;color:#22594f;font-size:12px;padding:7px 11px;border-radius:25px;font-weight:700}
+.localities a{display:inline-flex;align-items:center;min-width:44px;min-height:44px;background:#e8f1ef;color:#22594f;font-size:12px;padding:7px 11px;border-radius:25px;font-weight:700}
 .localities a:hover,.localities a:focus-visible{background:#0a7067;color:white}
 .city-intro{padding:12px 0 4px;color:#576877;font-size:13px}
 .city-section{margin:20px 0 34px}
 .city-section .section-label{margin-top:15px}
 .city-empty{border:1px dashed #ccd9d7;border-radius:13px;background:#fff;padding:16px;color:#627380;font-size:13px}
-.coverage-tag{display:inline-block;background:#eaf0f6;border-radius:7px;padding:4px 8px;color:#3b5d72;font-size:11px;font-weight:800;text-transform:uppercase}
+.coverage-tag{display:inline-block;background:#eaf0f6;border-radius:7px;padding:4px 8px;color:#3b5d72;font-size:12px;font-weight:800;text-transform:uppercase}
 @media(max-width:620px){.city-section{margin-bottom:24px}}
 
 /* V6 — Identidade editorial provisória, configurável pelo Personalizar.
@@ -55,3 +55,10 @@ Text Domain: portal-regional-tema
   .brand-mark { width:50px; height:48px; font-size:17px; }
   .brand b { font-size:25px; }
 }
+
+/* Auditoria: controles acessíveis mesmo nos formulários do tema clássico. */
+.brand small,.nav-status,.eyebrow,.kicker,.pr1-v7 .byline,.pr1-v7 .pr1-hero-note,
+.pr1-v7 .pr1-identity-word small {font-size:max(12px,.75rem)}
+.search-form input,.search-form select,.search-form button,.pr1-v7 input,.pr1-v7 select,
+.pr1-v7 button {min-height:44px}
+.localities span,.pr1-v7 .pr1-hero-tags span {min-height:44px;display:inline-flex;align-items:center}

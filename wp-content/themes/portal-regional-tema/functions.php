@@ -1,6 +1,7 @@
 <?php
 if (!defined('ABSPATH')) exit;
 require_once get_template_directory().'/includes/pr1-aero-bridge.php';
+require_once get_template_directory().'/includes/pr1-news-seo.php';
 
 
 /**
@@ -27,7 +28,6 @@ add_action('customize_register', function ($customize) {
     'priority' => 25
   ]);
   foreach ([
-    'regional_aero_url' => ['URL do AERO (HTTPS)', 'https://aero-command-center-alex-direito-6512.vercel.app/'],
     'regional_public_brand' => ['Nome público', 'PR1 News'],
     'regional_brand_mark' => ['Sigla no símbolo', 'PR1'],
     'regional_public_tagline' => ['Frase da marca', 'Notícias da sua região, com contexto.']
@@ -47,6 +47,7 @@ add_action('customize_register', function ($customize) {
 
 add_action('after_setup_theme', function () {
   load_theme_textdomain('portal-regional-tema', get_template_directory().'/languages');
+  add_theme_support('custom-logo', ['height'=>60,'width'=>600,'flex-height'=>true,'flex-width'=>true]);
   add_theme_support('title-tag'); add_theme_support('post-thumbnails'); add_theme_support('automatic-feed-links');
   add_theme_support('html5', ['search-form','gallery','caption','style','script']);
   register_nav_menus(['primary'=>'Menu principal']);
@@ -56,10 +57,35 @@ add_action('wp_enqueue_scripts', function () {
   wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], '0.9.0');
   wp_enqueue_style('regional-v7', get_template_directory_uri().'/assets/pr1-v7.css', ['regional-theme'], '0.9.0');
   wp_enqueue_script('regional-v7-reading', get_template_directory_uri().'/assets/pr1-v7.js', [], '0.9.0', true);
-  wp_enqueue_script('regional-aero', get_template_directory_uri().'/assets/pr1-aero.js', [], '0.9.0', true);
+  if(is_front_page() || (bool)get_query_var('pr1_aero') || is_page_template('page-pr1-aero.php')) {
+    wp_enqueue_script('regional-aero', get_template_directory_uri().'/assets/pr1-aero.js', [], '0.9.0', true);
+  }
 });
+add_action('save_post_page',function(){wp_cache_delete('pr1_legal_pages_v1','pr1news');});
+add_action('delete_post',function($id){if(get_post_type($id)==='page')wp_cache_delete('pr1_legal_pages_v1','pr1news');});
 add_action('widgets_init', function () {
   register_sidebar(['name'=>'Barra lateral','id'=>'regional-sidebar','description'=>'Espaço para anúncios identificados, banners e informações institucionais','before_widget'=>'<section class="panel sidebar-widget">','after_widget'=>'</section>','before_title'=>'<h3 class="widget-title">','after_title'=>'</h3>']);
+});
+/**
+ * Resolve city categories by configurable slugs; old name lookup remains
+ * available for the installations provisioned by the editorial agents.
+ */
+function regional_category_for(string $label) {
+  $key=sanitize_title($label);
+  $slug=sanitize_title((string)get_theme_mod('regional_category_slug_'.$key,$key));
+  $term=$slug?get_term_by('slug',$slug,'category'):false;
+  if(!$term || is_wp_error($term))$term=get_term_by('name',$label,'category');
+  return ($term && !is_wp_error($term))?$term:false;
+}
+add_action('customize_register',function($customize){
+  $customize->add_section('regional_categories_section',[
+    'title'=>'Editorias regionais — slugs', 'description'=>'Associe uma seção existente a cada cidade; não cria nem renomeia categorias.','priority'=>27
+  ]);
+  foreach(['Arapongas','Londrina','Maringá','Apucarana','Paraná','Brasil'] as $label){
+    $id='regional_category_slug_'.sanitize_title($label);
+    $customize->add_setting($id,['default'=>sanitize_title($label),'sanitize_callback'=>'sanitize_title','transport'=>'refresh']);
+    $customize->add_control($id,['label'=>$label.' — slug','section'=>'regional_categories_section','type'=>'text']);
+  }
 });
 function regional_label($id) {
   $cats = get_the_category($id);
@@ -70,7 +96,7 @@ function regional_card($post, $mode='story') {
   $id = $post->ID;
   if ($mode === 'lead') {
     echo '<article class="lead"><a href="'.esc_url(get_permalink($id)).'">';
-    if (has_post_thumbnail($id)) echo get_the_post_thumbnail($id,'regional-lead');
+    if (has_post_thumbnail($id)) echo get_the_post_thumbnail($id,'regional-lead', ['loading'=>'eager','fetchpriority'=>'high','decoding'=>'async']);
     else echo '<div class="lead-media">Notícia em destaque</div>';
     echo '</a><div class="lead-content"><span class="kicker">'.esc_html(regional_label($id)).'</span><h2><a href="'.esc_url(get_permalink($id)).'">'.esc_html(get_the_title($id)).'</a></h2><div class="summary">'.esc_html(wp_trim_words(get_the_excerpt($id),28)).'</div><div class="byline">'.esc_html(get_the_date('d/m/Y',$id)).' · '.esc_html(get_the_author_meta('display_name',$post->post_author)).'</div></div></article>';
   } elseif ($mode === 'compact') {

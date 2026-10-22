@@ -18,7 +18,7 @@
 <?php if (has_nav_menu('primary')): wp_nav_menu(['theme_location'=>'primary','container'=>false,'menu_class'=>'nav-list pr1-nav-list','depth'=>1]); else: ?>
 <ul class="nav-list pr1-nav-list"><li><a href="<?php echo esc_url(home_url('/')); ?>"<?php echo is_front_page()?' aria-current="page"':''; ?>>Início</a></li>
 <?php foreach (['Arapongas','Londrina','Maringá','Apucarana','Paraná','Brasil'] as $label):
-  $term=get_term_by('name',$label,'category');
+  $term=regional_category_for($label);
   if (!$term || is_wp_error($term)) continue;
   $is_active=is_category($term->term_id);
 ?>
