@@ -39,6 +39,9 @@ foreach(['tag','author','date','404'] as $view){$GLOBALS['view']=$view;$html=ren
 $GLOBALS['view']='post';$html=render_head();
 preg_match('~<script type="application/ld\+json">(.*?)</script>~s',$html,$m);$json=json_decode($m[1]??'',true);
 verify(($json['publisher']['logo']['@type']??'')==='ImageObject'&&str_contains($json['publisher']['logo']['url'],'pr1-wordmark-provisorio.png'),'NewsArticle emits valid theme publisher.logo');
+$fallback=get_template_directory().'/assets/pr1-wordmark-provisorio.png';
+$dimensions=getimagesize($fallback);
+verify(is_array($dimensions)&&$dimensions[0]<=600&&$dimensions[1]<=60,'publisher logo fallback fits at most 600x60');
 verify(str_contains($html,'pr1-social-provisorio.png'),'OG fallback is separate 1200x630 asset');
 $GLOBALS['logo']=1;verify(pr1_news_publisher_logo()===home_url('/configured-logo.png'),'configured logo takes precedence');
 $GLOBALS['view']='category';$html=render_head();verify(str_contains($html,'Notícias de Londrina | PR1 News')&&str_contains($html,'Informações locais de Londrina'),'category has own title and description');
