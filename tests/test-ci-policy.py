@@ -34,64 +34,21 @@ def validate(normal, manual, connectors=False):
 
     for filename, command in protected_commands:
         if (root / 'tests' / filename).exists():
-            assert re.search(r'(?m)^[ \\t]*' + re.escape(command) + r'[ \\t]*(root / 'tests' / name).exists() for name in (
-    'test-robots.php', 'test-freshness.php', 'test-fingerprint-concurrency.php'))
-validate(normal, manual, connectors)
-assert not (root / '.github/workflows/importar-v5.yml').exists()
-mutations = [
-    normal.replace('php tests/test-aero-host.php', 'true'),
-    normal.replace('name: Testar hostname seguro do AERO', 'name: removido'),
-    normal.replace('name: Conferir arquivos de segurança', 'name: removido'),
-    normal.replace('test ! -e .github/workflows/importar-v5.yml', 'true'),
-    normal.replace('if grep -RIn', 'if echo'),
-    normal.replace('sha512sum --check --strict', 'cat'),
-    re.sub(r'(actions/checkout)@[a-f0-9]{40}', r'\1@v4', normal),
-]
-# Exercise future integration requirements even on the standalone PR #1.
-integrated = normal + '\n'.join('php tests/' + t for t in (
-    'test-robots.php', 'test-freshness.php', 'test-fingerprint-concurrency.php'))
-validate(integrated, manual, True)
-for test in ('test-robots.php', 'test-freshness.php', 'test-fingerprint-concurrency.php'):
-    try:
-        validate(integrated.replace(test, 'removed.php'), manual, True)
-    except AssertionError:
-        pass
-    else:
-        raise AssertionError('Mutação não detectada: ' + test)
-for filename, command in protected_commands:
-    if (root / 'tests' / filename).exists():
-        mutant = normal.replace(command, 'true', 1)
-        assert mutant != normal, 'Comando de teste ausente no CI: ' + command
-        try:
-            validate(mutant, manual, connectors)
-        except AssertionError:
-            pass
-        else:
-            raise AssertionError('Mutação não detectada: ' + command)
-for mutant in mutations:
-    try:
-        validate(mutant, manual, connectors)
-    except AssertionError:
-        pass
-    else:
-        raise AssertionError('Mutação não detectada')
-print('OK CI: guardas AERO, SHA40, SHA512, 10 mutações antigas e ' +
-      str(sum((root / 'tests' / f).exists() for f, _ in protected_commands)) +
-      ' mutações adicionais de testes; probe só manual')
-, normal), 'CI perdeu: ' + command
+            assert command in [line.strip() for line in normal.splitlines()], 'CI perdeu: ' + command
 
 
 protected_commands = (
-    ('test-collector-concurrency.php', 'php tests/test-collector-concurrency.php /tmp/portal-wp/wp-load.php'),
-    ('test-newsletter-guard.php', 'php tests/test-newsletter-guard.php'),
-    ('test-newsletter-guard.php', 'php tests/test-newsletter-guard.php --authorized'),
-    ('test-seo-canonical.php', 'php tests/test-seo-canonical.php'),
-    ('test-seo-output.php', 'php tests/test-seo-output.php'),
-    ('test-footer-guard.php', 'php tests/test-footer-guard.php'),
-    ('test-footer-guard.php', 'php tests/test-footer-guard.php --approved'),
-    ('test-published-placeholders.php', 'php tests/test-published-placeholders.php'),
-    ('test-published-placeholders.php', 'php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/test-published-placeholders.php" --path=/tmp/portal-wp --allow-root'),
+    ("test-collector-concurrency.php", "php tests/test-collector-concurrency.php /tmp/portal-wp/wp-load.php"),
+    ("test-newsletter-guard.php", "php tests/test-newsletter-guard.php"),
+    ("test-newsletter-guard.php", "php tests/test-newsletter-guard.php --authorized"),
+    ("test-seo-canonical.php", "php tests/test-seo-canonical.php"),
+    ("test-seo-output.php", "php tests/test-seo-output.php"),
+    ("test-footer-guard.php", "php tests/test-footer-guard.php"),
+    ("test-footer-guard.php", "php tests/test-footer-guard.php --approved"),
+    ("test-published-placeholders.php", "php tests/test-published-placeholders.php"),
+    ("test-published-placeholders.php", "php /tmp/wp-cli.phar eval-file \"$GITHUB_WORKSPACE/tests/test-published-placeholders.php\" --path=/tmp/portal-wp --allow-root"),
 )
+
 
 connectors = any((root / 'tests' / name).exists() for name in (
     'test-robots.php', 'test-freshness.php', 'test-fingerprint-concurrency.php'))
@@ -117,6 +74,17 @@ for test in ('test-robots.php', 'test-freshness.php', 'test-fingerprint-concurre
         pass
     else:
         raise AssertionError('Mutação não detectada: ' + test)
+for filename, command in protected_commands:
+    if (root / 'tests' / filename).exists():
+        lines = normal.splitlines()
+        assert command in [line.strip() for line in lines], 'Comando CI ausente: ' + command
+        mutant = normal.replace(command, 'true', 1)
+        try:
+            validate(mutant, manual, connectors)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('Mutação não detectada: ' + command)
 for mutant in mutations:
     try:
         validate(mutant, manual, connectors)
@@ -124,4 +92,4 @@ for mutant in mutations:
         pass
     else:
         raise AssertionError('Mutação não detectada')
-print('OK CI: guardas AERO, união dos conectores, SHA40, SHA512 e 10 mutações; probe só manual')
+print('OK CI: 10 mutações originais e 9 guardas condicionais dos testes novos; probe só manual')
