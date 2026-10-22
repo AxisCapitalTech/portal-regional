@@ -19,6 +19,7 @@ function wp_insert_term($name,$tax,$params=[]){$id=count($GLOBALS['terms']??[])+
 function get_transient($key){return false;}function set_transient($key,$v,$s){return true;}function delete_transient($key){return true;}
 function wp_safe_remote_get($url,$args){
  $GLOBALS['calls'][]=$url;
+ if(isset($GLOBALS['responses'][$url]))return $GLOBALS['responses'][$url];
  if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/robots.txt'))
    return ['status'=>200,'type'=>'text/plain','body'=>"User-agent: *\nAllow: /\nSitemap: https://arapongas.atende.net/sitemap.xml\n"];
  if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/sitemap.xml'))
@@ -73,3 +74,9 @@ $prior=$h['maringa']['last_success'];$GLOBALS['blocks']=['maringa.pr.gov.br'];
 PR_Official::collect(true);$h=get_option('pra_official_health');$r=get_option('pra_official_report');
 check('failed source preserves last success',$h['maringa']['last_success']===$prior);
 check('failed source reports manual fallback',str_contains($r['sources']['maringa']['status'],'MANUAL'));
+
+$create=new ReflectionMethod(PR_Official::class,'create');$create->setAccessible(true);
+$url='https://blog.londrina.pr.gov.br/?p=999999999';
+$GLOBALS['responses'][$url]=['status'=>200,'body'=>'<meta property="article:published_time" content="'.gmdate('c',time()-9*86400).'">'];
+check('Londrina HTML fallback rejects old publication',
+ $create->invoke(null,['title'=>'Título sintético para teste de regressão do fallback','link'=>$url],['label'=>'Fixture','city'=>'Londrina'],'londrina')==='stale');

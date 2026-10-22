@@ -186,7 +186,7 @@ final class PR_Official {
         elseif(preg_match('~<title[^>]*>(.*?)</title>~isu',$html,$match))$title=html_entity_decode(strip_tags($match[1]),ENT_QUOTES|ENT_HTML5,'UTF-8');
         $title=sanitize_text_field($title);
         if(mb_strlen($title)<23)continue;
-        $items[]=['title'=>$title,'link'=>$link['link'],'date'=>0,'sitemap_lastmod'=>$link['lastmod']];
+        $items[]=['title'=>$title,'link'=>$link['link'],'date'=>PR_Official_Freshness::date_from_html($html),'sitemap_lastmod'=>$link['lastmod']];
       }catch(RuntimeException $e){break;} // cumprir Crawl-delay, não contornar bloqueios
     }
     if(!$items)throw new RuntimeException('Sitemap encontrado, mas itens não acessíveis; usar conector manual');
@@ -269,7 +269,7 @@ final class PR_Official {
     $title=mb_substr(sanitize_text_field((string)$item['title']),0,200);
     $date=(int)($item['date']??0);
     // HTML list pages are not evidence of publication date. Inspect source articles.
-    if($date===0 && $key!=='londrina')$date=self::source_date((string)$item['link']);
+    if($date===0)$date=self::source_date((string)$item['link']);
     if($date && ($date<time()-7*DAY_IN_SECONDS || $date>time()+DAY_IN_SECONDS))return 'stale';
     $high=self::risky($title);
     $body='<p><strong>PAUTA DE MONITORAMENTO — NÃO PUBLICAR SEM REVISÃO.</strong></p>';

@@ -31,7 +31,7 @@ final class PR_Official_Robots {
     foreach($groups as $g){
       foreach($g['agents'] as $agent){
         if($agent==='*'||str_contains(strtolower($ua),$agent)){
-          $matching[]=['score'=>$agent==='*'?0:strlen($agent),'rules'=>$g['rules']];break;
+          $matching[]=['score'=>$agent==='*'?0:strlen($agent),'rules'=>$g['rules']];
         }
       }
     }
@@ -40,7 +40,7 @@ final class PR_Official_Robots {
     foreach($matching as $entry)if($entry['score']===$score)$rules=array_merge($rules,$entry['rules']);
     $allowed=true;$length=-1;$delay=0;
     foreach($rules as [$kind,$pattern]){
-      if($kind==='crawl-delay'){$delay=max($delay,min(60,(int)ceil((float)$pattern)));continue;}
+      if($kind==='crawl-delay'){$delay=max($delay,(int)ceil((float)$pattern));continue;}
       if($pattern==='')continue;
       $regex='~^'.str_replace(['\\*','\\$'],['.*','$'],preg_quote($pattern,'~')).'~';
       if(!preg_match($regex,$path))continue;

@@ -19,3 +19,9 @@ assert_ok(count($files)===1&&$files[0]==='https://arapongas.atende.net/sitemap/n
 assert_ok(PR_Official_Robots::sitemap_children($xml,$today)===[],'urlset not mistaken for sitemapindex');
 assert_ok(PR_Official_Robots::sitemap_children(str_repeat('z',2000001),$today)===[],'oversized sitemap refused');
 echo "OK robots and sitemap tests completed\n";
+
+assert_ok(PR_Official_Robots::parse("User-agent: *\nCrawl-delay: 120\n",'/')['delay']===120,'crawl-delay never shortened');
+$group="User-agent: *\nUser-agent: PortalRegionalTriagem\nDisallow: /private\n\nUser-agent: OtherBot\nAllow: /\n";
+assert_ok(!PR_Official_Robots::parse($group,'/private')['allowed'],'specific agent in shared group remains restrictive');
+$groups="User-agent: *\nUser-agent: PortalRegionalTriagem\nDisallow: /private\nUser-agent: PortalRegionalTriagem\nDisallow: /secret\n";
+assert_ok(!PR_Official_Robots::parse($groups,'/private')['allowed'],'merge all equally specific groups');
