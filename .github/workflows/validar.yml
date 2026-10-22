@@ -28,6 +28,10 @@ jobs:
           set -euo pipefail
           php -v
           while IFS= read -r -d '' file; do php -l "$file"; done < <(find wp-content tests -name '*.php' -print0)
+      - name: Testar bloqueio da newsletter sem envio
+        run: |
+          php tests/test-newsletter-guard.php
+          php tests/test-newsletter-guard.php --authorized
       - name: Testar canonical e compatibilidade SEO
         run: php tests/test-seo-canonical.php
       - name: Testar parser e URLs das cidades

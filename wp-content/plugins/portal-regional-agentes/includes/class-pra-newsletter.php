@@ -11,6 +11,14 @@ final class PR_Newsletter {
     add_action('admin_post_pra_subscribe',[__CLASS__,'subscribe']);
     add_shortcode('pra_newsletter',[__CLASS__,'shortcode']);
   }
+  /** Fail closed until explicitly authorized and a published policy exists. */
+  public static function can_accept():bool {
+    if(!defined('PR1_NEWSLETTER_ENABLED') || PR1_NEWSLETTER_ENABLED!==true)return false;
+    $id=(int)get_option('wp_page_for_privacy_policy',0);
+    $page=$id?get_post($id):null;
+    return $page && $page->post_status==='publish' && $page->post_type==='page'
+      && trim(wp_strip_all_tags($page->post_content))!=='' && get_privacy_policy_url()!=='';
+  }
   private static function lists():array {return (array)get_option(self::OPT,[]);}
   public static function menu():void{add_management_page('Newsletter Regional','Newsletter Regional','manage_options','pra-newsletter',[__CLASS__,'page']);}
   public static function page():void{
@@ -36,6 +44,7 @@ final class PR_Newsletter {
     update_option(self::OPT,$out,false);wp_safe_redirect(admin_url('tools.php?page=pra-newsletter'));exit;
   }
   public static function shortcode():string{
+    if(!self::can_accept())return '<div class="pra-newsletter-note">Cadastro de newsletter indisponível até autorização e validação da política de privacidade.</div>';
     $o=self::lists();$ready=class_exists('\\MailPoet\\API\\API') && count(array_filter($o));
     if(!$ready)return '<div class="pra-newsletter-note">Boletim regional em implantação. Cadastro será disponibilizado após ativação do serviço de e-mail e confirmação de inscrição.</div>';
     $message=isset($_GET['pra_nl'])?sanitize_key(wp_unslash($_GET['pra_nl'])):'';
@@ -59,6 +68,7 @@ final class PR_Newsletter {
     <?php return (string)ob_get_clean();
   }
   public static function subscribe():void{
+    if(!self::can_accept())wp_die('Cadastro de newsletter indisponível.', '', ['response'=>403]);
     $redirect=wp_get_referer()?:home_url('/');$redirect=wp_validate_redirect($redirect,home_url('/'));
     if(strtoupper((string)($_SERVER['REQUEST_METHOD']??''))!=='POST')wp_die('Método inválido.');
     if(!isset($_POST['pra_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['pra_nonce'])),'pra_subscribe')){wp_safe_redirect(add_query_arg('pra_nl','error',$redirect));exit;}

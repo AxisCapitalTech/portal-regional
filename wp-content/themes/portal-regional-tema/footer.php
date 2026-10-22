@@ -1,7 +1,9 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <footer class="footer pr1-footer"><div class="wrap pr1-footer-inner"><div class="pr1-footer-brand"><strong><?php echo esc_html(regional_public_brand()); ?></strong>
 <p>Projeto de jornalismo regional com informações de interesse público. Publicidade identificada e apuração editorial responsável.</p>
+<?php if(defined('PR1_EDITORIAL_NOTICE_APPROVED') && PR1_EDITORIAL_NOTICE_APPROVED===true): ?>
 <p class="pr1-independencia">Portal independente: este site não é canal oficial nem veículo institucional da Prefeitura de Arapongas.</p>
+<?php endif; ?>
 <small>© <?php echo esc_html(wp_date('Y')); ?> · <?php echo esc_html(regional_public_brand()); ?><?php if(wp_get_environment_type() !== 'production'): ?> · Marca provisória em homologação<?php endif; ?></small></div>
 <div class="pr1-footer-coverage">Arapongas · Londrina · Maringá · Apucarana<br>Paraná · Brasil</div>
 <div class="pr1-footer-actions"><a href="<?php echo esc_url(home_url('/')); ?>">Página inicial</a><a href="<?php echo esc_url(home_url('/?s=')); ?>">Pesquisar</a><a href="<?php echo esc_url(home_url('/#processo-editorial')); ?>">Como verificamos</a><?php $pr1_legal_pages=wp_cache_get('pr1_legal_pages_v1','pr1news');
