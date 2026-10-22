@@ -5,7 +5,7 @@ if(!function_exists('mb_substr')) {function mb_substr($s,$start,$length=null,$en
 if(!function_exists('mb_strtolower')) {function mb_strtolower($s,$enc=null){return strtolower($s);}}
 if(!function_exists('mb_strlen')) {function mb_strlen($s,$enc=null){return strlen($s);}}
 define('ABSPATH', __DIR__.'/wp-stubs/'); define('WPINC','wp-includes');
-define('HOUR_IN_SECONDS',3600);define('MINUTE_IN_SECONDS',60);
+define('DAY_IN_SECONDS',86400);define('HOUR_IN_SECONDS',3600);define('MINUTE_IN_SECONDS',60);
 $GLOBALS['opts']=[];$GLOBALS['meta']=[];$GLOBALS['posts']=[];$GLOBALS['calls']=[];$GLOBALS['blocks']=[];
 function add_action(...$args){} function add_filter(...$args){} function add_shortcode(...$args){}
 function wp_parse_args($args,$defaults){return array_merge($defaults,(array)$args);}
