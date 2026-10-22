@@ -66,6 +66,57 @@ assert "'enabled'=>0" in official
 assert 'normalize_manual_item' in official and 'manual_link' in official
 print('OK V9 AERO, licença comercial bloqueada e fallback assistido')
 
+# Etapa 1: restrição da origem AERO e workflow antigo excluído.
+assert not (root/'.github/workflows/importar-v5.yml').exists()
+host_fragment='alex'+'-direito'
+for file in root.rglob('*'):
+    if file.is_file() and '.git' not in file.parts and file.suffix in {'.php','.yml','.md','.js','.sh','.json','.css'}:
+        assert host_fragment not in file.read_text(errors='replace'), file
+assert "'regional_aero_url'" not in theme_functions
+assert 'PR1_AERO_HOST' in aero_bridge and 'validated_host' in aero_bridge
+assert "return ''" in aero_bridge
+assert "wp-config.php" in aero_page
+assert "if($aero_url!=='')" in aero_page
+workflow=(root/'.github/workflows/validar.yml').read_text()
+assert workflow.count('openssl rand -hex 24') >= 2
+assert 'tests/test-aero-host.php' in workflow and 'tests/test-aero-host-configured.php' in workflow
+assert '--admin_password="$wp_test_password"' in workflow
+assert '-e STAGING_PASSWORD="$staging_test_password"' in workflow
+assert 'contents: read' in workflow
+print('OK Etapa 1: AERO em constante, workflow legado ausente e credenciais CI aleatórias')
+
+# Etapa 1: configuração externa segura e remoção do importador com acesso de escrita.
+assert not (root/'.github/workflows/importar-v5.yml').exists(), 'Legacy write-enabled workflow still present'
+host_fragment='alex'+'-direito'
+bridge=(root/'wp-content/themes/portal-regional-tema/includes/pr1-aero-bridge.php').read_text()
+aero_page=(root/'wp-content/themes/portal-regional-tema/page-pr1-aero.php').read_text()
+for filename in ['functions.php','includes/pr1-aero-bridge.php','page-pr1-aero.php']:
+    source=(root/'wp-content/themes/portal-regional-tema'/filename).read_text()
+    assert host_fragment not in source, 'Hardcoded personal hostname in '+filename
+assert 'regional_aero_url' not in theme_functions, 'AERO URL should not be editable in the customizer'
+assert 'PR1_AERO_HOST' in bridge and 'validated_host' in bridge
+assert '$aero_url!==\'\'' in aero_page and 'wp-config.php' in aero_page
+workflow=(root/'.github/workflows/validar.yml').read_text()
+assert workflow.count('openssl rand -hex 24') >= 2, 'CI passwords must be generated at runtime'
+assert 'tests/test-aero-host.php' in workflow and 'tests/test-aero-host-configured.php' in workflow
+assert '--admin_password="$wp_test_password"' in workflow
+print('OK etapa 1: host AERO isolado, CI aleatorio, importador excluido')
+# Etapa 2, primeira revisão: RSS válido, administrador e menu institucional.
+assert "'rss'=>'https://blog.londrina.pr.gov.br/?feed=rss2'" in official
+assert "add_action('admin_init',[__CLASS__,'ensure_schedule']);" in official
+assert "add_action('init',[__CLASS__,'ensure_schedule']);" not in official
+assert 'Fonte inacessível a partir deste servidor' in official
+parser=(root/'wp-content/plugins/portal-regional-agentes/includes/class-pra-source-parser.php').read_text()
+assert 'article_context' in parser and "'apucarana'=> ['host'=>'www.apucarana.pr.gov.br'" in parser
+assert "PR_Official_Robots::parse" in official and "arapongas_sitemap" in official
+assert (root/'wp-content/plugins/portal-regional-agentes/includes/class-pra-robots.php').exists()
+assert (root/'tests/test-robots.php').exists()
+print('OK Etapa 2, ajustes de RSS, admin e filtros institucionais')
+
+assert "PR_Official_Freshness::date_from_html" in official
+assert "'stale'" in official and "7*DAY_IN_SECONDS" in official
+assert (root/'tests/test-freshness.php').exists()
+print('OK source publication date extraction and stale screening')
 # Etapa 3: fonte, privacidade, páginas reais e controles de leitura.
 assert '_pra_source_name' in single and 'pr1-related' in single and 'the_tags(' in single
 assert '<time datetime=' in single and 'get_author_posts_url' in single
@@ -112,3 +163,14 @@ for file in expected:
     assert 'RASCUNHO' in content and 'REVISÃO JURÍDICA PENDENTE' in content
 assert 'não é canal oficial' in footer and 'Publicidade — Espaço comercial' in front
 print('OK modelos institucionais em rascunho, independência e publicidade identificada')
+
+import re
+style=(root/'wp-content/themes/portal-regional-tema/style.css').read_text()
+for selector, css in [('.pra-ad-label',style),('.coverage-tag',style),('.pr1-aero-reading small',v7css)]:
+    rules=re.findall(re.escape(selector)+r'\s*\{([^}]+)\}',css)
+    sizes=[float(n) for rule in rules for n in re.findall(r'font-size:\s*([0-9.]+)px',rule)]
+    assert sizes and min(sizes)>=12, selector
+chip=re.search(r'\.localities a\s*\{([^}]+)\}',style).group(1)
+assert 'min-height:44px' in chip and 'min-width:44px' in chip
+assert "add_theme_support('custom-logo'" in theme_functions
+print('OK audited font sizes >=12px, locality targets >=44px, custom-logo supported')

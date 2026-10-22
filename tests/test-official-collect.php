@@ -5,12 +5,13 @@ if(!function_exists('mb_substr')) {function mb_substr($s,$start,$length=null,$en
 if(!function_exists('mb_strtolower')) {function mb_strtolower($s,$enc=null){return strtolower($s);}}
 if(!function_exists('mb_strlen')) {function mb_strlen($s,$enc=null){return strlen($s);}}
 define('ABSPATH', __DIR__.'/wp-stubs/'); define('WPINC','wp-includes');
-define('HOUR_IN_SECONDS',3600);define('MINUTE_IN_SECONDS',60);
+define('DAY_IN_SECONDS',86400);define('HOUR_IN_SECONDS',3600);define('MINUTE_IN_SECONDS',60);
 $GLOBALS['opts']=[];$GLOBALS['meta']=[];$GLOBALS['posts']=[];$GLOBALS['calls']=[];$GLOBALS['blocks']=[];
 function add_action(...$args){} function add_filter(...$args){} function add_shortcode(...$args){}
 function wp_parse_args($args,$defaults){return array_merge($defaults,(array)$args);}
 function get_option($key,$default=false){return $GLOBALS['opts'][$key]??$default;}
-function add_option($key,$value,...$args){$GLOBALS['opts'][$key]=$value;return true;}
+function add_option($key,$value,...$args){if(array_key_exists($key,$GLOBALS['opts']))return false;$GLOBALS['opts'][$key]=$value;return true;}
+function delete_option($key){unset($GLOBALS['opts'][$key]);return true;}
 function update_option($key,$value,...$args){$GLOBALS['opts'][$key]=$value;return true;}
 function wp_next_scheduled(...$args){return false;}function wp_schedule_event(...$args){}
 function term_exists($name,$tax){return isset($GLOBALS['terms'][$name])?['term_id'=>$GLOBALS['terms'][$name]]:false;}
@@ -18,13 +19,18 @@ function wp_insert_term($name,$tax,$params=[]){$id=count($GLOBALS['terms']??[])+
 function get_transient($key){return false;}function set_transient($key,$v,$s){return true;}function delete_transient($key){return true;}
 function wp_safe_remote_get($url,$args){
  $GLOBALS['calls'][]=$url;
+ if(isset($GLOBALS['responses'][$url]))return $GLOBALS['responses'][$url];
+ if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/robots.txt'))
+   return ['status'=>200,'type'=>'text/plain','body'=>"User-agent: *\nAllow: /\nSitemap: https://arapongas.atende.net/sitemap.xml\n"];
+ if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/sitemap.xml'))
+   return ['status'=>200,'type'=>'application/xml','body'=>'<urlset><url><loc>https://arapongas.atende.net/cidadao/noticia/agenda-cultural-na-cidade</loc><lastmod>'.gmdate('c').'</lastmod></url></urlset>'];
  foreach($GLOBALS['blocks'] as $host)if(str_contains($url,$host))return new WP_Error('offline');
  $map=['arapongas.atende.net'=>['/cidadao/noticia/agenda-cultural-na-cidade','Prefeitura de Arapongas divulga nova programação cultural'],
   'blog.londrina.pr.gov.br'=>['/?p=187239','Londrina abre inscrições para evento municipal'],
   'maringa.pr.gov.br'=>['/noticias/inscricoes-para-trilha-noturna-no-parque-do-inga-podem-ser-feitas-nesta-quarta-feira-21/43328','Inscrições para trilha noturna no Parque do Ingá podem ser feitas nesta quarta-feira, 21'],
   'apucarana.pr.gov.br'=>['/site/prefeitura-de-apucarana-faz-retirada-preventiva-de-eucalipto-com-risco-de-queda-ao-lado-do-espaco-das-feiras/','Prefeitura de Apucarana faz retirada preventiva de eucalipto com risco de queda'],
   'parana.pr.gov.br'=>['/aen/Noticia/Parana-ganha-nova-tecnologia-de-fundicao-de-aluminio','Paraná ganha nova tecnologia de fundição de alumínio em fábrica de motores']];
- foreach($map as $host=>$pair)if(str_contains($url,$host))return ['status'=>200,'type'=>'text/html; charset=utf-8','body'=>'<html><body><article><h2><a href="https://'.(str_starts_with($host,'maringa')?'www.':(str_starts_with($host,'apucarana')?'www.':(str_starts_with($host,'parana')?'www.':''))).$host.$pair[0].'">'.htmlspecialchars($pair[1]).'</a></h2></article></body></html>'.str_repeat(' ',400)];
+ foreach($map as $host=>$pair)if(str_contains($url,$host))return ['status'=>200,'type'=>'text/html; charset=utf-8','body'=>'<html><head><title>'.htmlspecialchars($pair[1]).'</title></head><body><article><h2><a href="https://'.(str_starts_with($host,'maringa')?'www.':(str_starts_with($host,'apucarana')?'www.':(str_starts_with($host,'parana')?'www.':''))).$host.$pair[0].'">'.htmlspecialchars($pair[1]).'</a></h2></article></body></html>'.str_repeat(' ',400)];
  return new WP_Error('unknown');
 }
 class WP_Error {public function __construct($msg='error'){} }
@@ -33,7 +39,7 @@ function wp_remote_retrieve_response_code($r){return $r['status']??0;}
 function wp_remote_retrieve_body($r){return $r['body']??'';}
 function wp_remote_retrieve_header($r,$header){return $r['type']??'';}
 function fetch_feed($url){return new WP_Error('simulate fallback');}
-function wp_parse_url($url){return parse_url($url);}
+function wp_parse_url($url,$component=-1){return parse_url($url,$component);}
 function sanitize_text_field($s){return trim(strip_tags($s));}
 function wp_strip_all_tags($s){return strip_tags($s);}function esc_url_raw($s){return $s;}
 function esc_url($s){return $s;} function wp_kses_post($s){return $s;}function esc_html($s){return htmlspecialchars((string)$s);}
@@ -44,7 +50,31 @@ function wp_insert_post($args,$wp_error=false){
 }
 function get_post_meta($id,$key,$single=true){return $GLOBALS['meta'][$id][$key]??'';}
 function update_post_meta($id,$key,$value){$GLOBALS['meta'][$id][$key]=$value;}
-class MockDB{public $postmeta="wp_postmeta";function prepare($query,...$args){return (string)end($args);}function get_var($fp){foreach($GLOBALS['meta'] as $id=>$meta)if(($meta['_pra_source_fingerprint']??'')===$fp)return $id;return null;}}
+function wp_cache_delete(...$args){}
+class MockDB {
+ public $postmeta='wp_postmeta';public $options='wp_options';public $prefix='wp_';public $fingerprints=[];
+ function prepare($sql,...$args){return [$sql,$args];}
+ function get_var($q){
+  [$sql,$args]=$q;
+  if(str_contains($sql,'option_value'))return $GLOBALS['opts'][$args[0]]??null;
+  $fp=end($args);foreach($GLOBALS['meta'] as $id=>$meta)if(($meta['_pra_source_fingerprint']??'')===$fp)return $id;
+  return null;
+ }
+ function query($q){
+  [$sql,$args]=$q;
+  if(str_contains($sql,'wp_options')){
+   if(str_starts_with($sql,'INSERT')){[$key,$value]=$args;if(isset($GLOBALS['opts'][$key]))return 0;$GLOBALS['opts'][$key]=$value;return 1;}
+   if(str_starts_with($sql,'UPDATE')){[$next,$key,$old]=$args;if(($GLOBALS['opts'][$key]??null)!==$old)return 0;$GLOBALS['opts'][$key]=$next;return 1;}
+   [$key,$old]=$args;if(($GLOBALS['opts'][$key]??null)!==$old)return 0;unset($GLOBALS['opts'][$key]);return 1;
+  }
+  if(!empty($GLOBALS['sql_error']))return false;
+  if(str_starts_with($sql,'DELETE'))return 0;
+  if(str_starts_with($sql,'INSERT')){if(isset($this->fingerprints[$args[0]]))return 0;$this->fingerprints[$args[0]]=0;return 1;}
+  throw new RuntimeException('Unexpected SQL in fixture');
+ }
+ function update($table,$data,$where,...$args){$this->fingerprints[$where['fingerprint']]=$data['post_id'];return 1;}
+ function delete($table,$where,...$args){unset($this->fingerprints[$where['fingerprint']]);return 1;}
+}
 $GLOBALS['wpdb']=new MockDB;
 @mkdir(ABSPATH.'wp-includes',0777,true);
 // Source fixture only: the test does not call remote network or WordPress install.
@@ -67,4 +97,38 @@ PR_Official::collect(true);$r=get_option('pra_official_report');check('duplicate
 $prior=$h['maringa']['last_success'];$GLOBALS['blocks']=['maringa.pr.gov.br'];
 PR_Official::collect(true);$h=get_option('pra_official_health');$r=get_option('pra_official_report');
 check('failed source preserves last success',$h['maringa']['last_success']===$prior);
-check('failed source reports error',str_contains($r['sources']['maringa']['status'],'Erro'));
+check('failed source reports manual fallback',str_contains($r['sources']['maringa']['status'],'MANUAL'));
+
+$counter=new ReflectionProperty(PR_Official::class,'date_fetches');$counter->setAccessible(true);$counter->setValue(null,0);
+$create=new ReflectionMethod(PR_Official::class,'create');$create->setAccessible(true);
+$url='https://blog.londrina.pr.gov.br/?p=999999999';
+$GLOBALS['responses'][$url]=['status'=>200,'body'=>'<meta property="article:published_time" content="'.gmdate('c',time()-9*86400).'">'];
+check('Londrina HTML fallback rejects old publication',
+ $create->invoke(null,['title'=>'Título sintético para teste de regressão do fallback','link'=>$url],['label'=>'Fixture','city'=>'Londrina'],'londrina')==='stale');
+
+$rss_url='https://blog.londrina.pr.gov.br/?feed=rss2';
+$xml='<rss><channel>';
+foreach([time()-3600,time()-9*86400] as $index=>$timestamp)
+ $xml.='<item><title>Notícia sintética de regressão do feed municipal</title><link>https://blog.londrina.pr.gov.br/?p='.(700000+$index).'</link><pubDate>'.gmdate(DATE_RSS,$timestamp).'</pubDate></item>';
+$xml.='</channel></rss>';
+$GLOBALS['responses'][$rss_url]=['status'=>200,'body'=>$xml];
+$rss=new ReflectionMethod(PR_Official::class,'london_rss');$rss->setAccessible(true);
+$items=$rss->invoke(null,['rss'=>$rss_url]);
+check('RSS keeps recent dated item and rejects older than seven days',count($items)===1&&$items[0]['date']>time()-86400);
+check('RSS uses policy-controlled HTTP transport',in_array($rss_url,$GLOBALS['calls'],true));
+
+$defs=(new ReflectionClass(PR_Official::class))->getConstant('SOURCES');
+check('every source has terms_url without invented values',count(array_filter($defs,fn($s)=>array_key_exists('terms_url',$s)))===5);
+$counter->setValue(null,0);$GLOBALS['calls']=[];
+$source_date=new ReflectionMethod(PR_Official::class,'source_date');$source_date->setAccessible(true);
+for($i=0;$i<12;$i++)$source_date->invoke(null,'https://blog.londrina.pr.gov.br/?p='.(810000+$i));
+$pages=array_filter($GLOBALS['calls'],fn($url)=>str_contains($url,'?p='));
+check('date fetch budget caps article requests at four',count($pages)===4);
+$counter->setValue(null,0);$GLOBALS['calls']=[];
+$create->invoke(null,['title'=>'Fixture local sem data de publicação conhecida','link'=>'https://arapongas.atende.net/cidadao/noticia/fixture-sem-data','date_checked'=>true,'sitemap_lastmod'=>123],['label'=>'Fixture','city'=>'Arapongas'],'arapongas');
+check('already fetched Arapongas page is never fetched again',$GLOBALS['calls']===[]);
+check('sitemap timestamp persisted separately',in_array(123,array_column($GLOBALS['meta'],'_pra_sitemap_lastmod'),true));
+$GLOBALS['sql_error']=true;$GLOBALS['responses'][$rss_url]['body']=str_replace('700000','900000',$xml);
+PR_Official::collect(true);$report=get_option('pra_official_report');
+check('SQL failure reported rather than duplicate',str_contains($report['sources']['londrina']['status'],'erro SQL') && $report['sources']['londrina']['duplicates']===0);
+$GLOBALS['sql_error']=false;

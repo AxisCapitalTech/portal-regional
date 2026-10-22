@@ -10,7 +10,7 @@ function is_front_page(){return $GLOBALS['view']==='front';}
 function is_home(){return in_array($GLOBALS['view'],['front','blog'],true);}
 function is_category(){return $GLOBALS['view']==='category';}
 function get_queried_object_id(){return 17;}
-function get_query_var($key){return $GLOBALS['paged'];}
+function get_query_var($key){return $key==='page'?($GLOBALS['page']??0):$GLOBALS['paged'];}
 function wp_get_canonical_url($id){return 'https://example.test/article/2/';}
 function get_permalink($id){return 'https://example.test/blog/';}
 function get_option($key){return 27;}
@@ -30,6 +30,8 @@ $GLOBALS['paged']=1;$GLOBALS['view']='category';expect_url('https://example.test
 foreach($GLOBALS['hooks']['wp'] as $cb)$cb();
 if($GLOBALS['removed']!==[['wp_head','rel_canonical']]){fwrite(STDERR,"FAIL duplicate core canonical\n");exit(1);}
 echo "OK native SEO removes duplicate core canonical\n";
+foreach(['tag','author','date','404'] as $view){$GLOBALS['view']=$view;expect_url('','unsupported archive or 404 has no home canonical: '.$view);}
+$GLOBALS['view']='front';$GLOBALS['paged']=1;$GLOBALS['page']=3;expect_url('https://example.test/blog/page/3/','static front page uses page query variable');
 $GLOBALS['removed']=[];define('WPSEO_VERSION','test');
 foreach($GLOBALS['hooks']['wp'] as $cb)$cb();
 if($GLOBALS['removed']!==[]){fwrite(STDERR,"FAIL external SEO ownership\n");exit(1);}

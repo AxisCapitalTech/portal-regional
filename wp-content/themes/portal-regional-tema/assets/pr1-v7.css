@@ -50,7 +50,7 @@ html{scroll-behavior:smooth}body.pr1-v7{background:var(--pr1-paper);color:var(--
 .pr1-aero-reading{min-height:87px;background:#ffffff0c;border:1px solid #ffffff21;border-radius:12px;padding:18px;display:grid;gap:6px}
 .pr1-aero-reading strong{font-size:24px;color:#fff}
 .pr1-aero-reading span{font-size:13px;color:#ecf3ff}
-.pr1-aero-reading small{font-size:11px;color:#bac9e1}
+.pr1-aero-reading small{font-size:12px;color:#bac9e1}
 .pr1-aero-source{margin:11px 0 0!important;font-size:11px!important}
 .pr1-aero-source a{color:#cce7ff;text-decoration:underline}
 .pr1-aero-page .pr1-aero-top{background:linear-gradient(110deg,#081b32,#103b78);border-radius:17px;padding:36px;color:white;margin:16px 0}

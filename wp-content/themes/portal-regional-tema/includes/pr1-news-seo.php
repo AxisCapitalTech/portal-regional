@@ -11,36 +11,50 @@ function pr1_news_seo_is_external():bool {
     || class_exists('AIOSEO\\Plugin\\AIOSEO',false);
 }
 function pr1_news_description():string {
-  if(is_singular('post')) {
+  if(is_singular()) {
     $text=(string)get_the_excerpt(get_queried_object_id());
     if($text==='')$text=wp_strip_all_tags((string)get_post_field('post_content',get_queried_object_id()));
     return wp_trim_words(wp_strip_all_tags($text),34,'…');
   }
+  if(is_category()){
+    $text=trim(wp_strip_all_tags((string)category_description(get_queried_object_id())));
+    return $text!==''?wp_trim_words($text,34,'…'):'Notícias de '.single_cat_title('',false).' | '.regional_public_brand();
+  }
   return function_exists('regional_public_tagline')?regional_public_tagline():(string)get_bloginfo('description');
+}
+function pr1_news_title():string {
+  if(is_singular())return get_the_title(get_queried_object_id()).' | '.regional_public_brand();
+  if(is_category())return 'Notícias de '.single_cat_title('',false).' | '.regional_public_brand();
+  return regional_public_brand();
+}
+function pr1_news_theme_image(string $name,int $width,int $height):string {
+  $file=get_template_directory().'/assets/'.$name;
+  if(!is_file($file))return '';
+  $size=getimagesize($file);
+  if(!$size||$size[0]<$width||$size[1]<$height)return '';
+  return esc_url_raw(get_template_directory_uri().'/assets/'.$name);
 }
 function pr1_news_publisher_logo():string {
   $id=(int)get_theme_mod('custom_logo',0);
   $url=$id?wp_get_attachment_image_url($id,'full'):false;
-  return $url?esc_url_raw($url):'';
+  return $url?esc_url_raw($url):pr1_news_theme_image('pr1-wordmark-provisorio.png',600,60);
 }
 function pr1_news_og_image():string {
   if(is_singular('post')){
     $img=get_the_post_thumbnail_url(get_queried_object_id(),'full');
     if($img)return esc_url_raw($img);
   }
-  $logo=pr1_news_publisher_logo();
-  if($logo)return $logo;
-  $site_icon=get_site_icon_url(512);
-  return $site_icon?esc_url_raw($site_icon):'';
+  return pr1_news_theme_image('pr1-social-provisorio.png',1200,630);
 }
 function pr1_news_canonical_url():string {
-  if(is_singular())return (string)wp_get_canonical_url(get_queried_object_id());
   if(is_front_page()||is_home()||is_category()){
-    if(max(1,(int)get_query_var('paged'))>1)return (string)get_pagenum_link((int)get_query_var('paged'));
+    $page=max(1,(int)get_query_var('paged'),(int)get_query_var('page'));
+    if($page>1)return (string)get_pagenum_link($page);
     if(is_category())return (string)get_category_link(get_queried_object_id());
     if(is_home() && !is_front_page())return (string)get_permalink((int)get_option('page_for_posts'));
     return home_url('/');
   }
+  if(is_singular())return (string)wp_get_canonical_url(get_queried_object_id());
   return '';
 }
 // WordPress emits rel_canonical too: keep one owner, preserving external SEO plugins.
@@ -52,16 +66,15 @@ add_action('wp_head',function(){
   $description=pr1_news_description();
   if($description!=='')echo '<meta name="description" content="'.esc_attr($description).'">'."\n";
   $isArticle=is_singular('post') && get_post_status(get_queried_object_id())==='publish';
-  $title=$isArticle?get_the_title(get_queried_object_id()):regional_public_brand();
+  $title=pr1_news_title();
   $link=pr1_news_canonical_url();
-  if(!$link)$link=home_url('/');
   $og_image=pr1_news_og_image();
-  echo '<link rel="canonical" href="'.esc_url($link).'">'."\n";
+  if($link!=='')echo '<link rel="canonical" href="'.esc_url($link).'">'."\n";
   echo '<meta property="og:site_name" content="'.esc_attr(regional_public_brand()).'">'."\n";
   echo '<meta property="og:locale" content="pt_BR">'."\n";
   echo '<meta property="og:type" content="'.($isArticle?'article':'website').'">'."\n";
   echo '<meta property="og:title" content="'.esc_attr($title).'">'."\n";
-  echo '<meta property="og:url" content="'.esc_url($link).'">'."\n";
+  if($link!=='')echo '<meta property="og:url" content="'.esc_url($link).'">'."\n";
   if($description!=='')echo '<meta property="og:description" content="'.esc_attr($description).'">'."\n";
   echo '<meta name="twitter:card" content="summary_large_image">'."\n";
   echo '<meta name="twitter:title" content="'.esc_attr($title).'">'."\n";
@@ -143,5 +156,7 @@ add_action('template_redirect',function(){
 });
 add_filter('robots_txt',function($text,$public){
   if(!$public||pr1_news_seo_is_external())return $text;
+  $core='Sitemap: '.home_url('/wp-sitemap.xml');
+  if(strpos($text,$core)===false)$text=rtrim($text)."\n".$core;
   return rtrim($text)."\nSitemap: ".home_url('/news-sitemap.xml')."\n";
 },10,2);

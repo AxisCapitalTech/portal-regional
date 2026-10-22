@@ -15,9 +15,9 @@ jobs:
       matrix:
         php: ['8.0', '8.2', '8.3']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Configurar PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, dom, xml
@@ -28,12 +28,35 @@ jobs:
           set -euo pipefail
           php -v
           while IFS= read -r -d '' file; do php -l "$file"; done < <(find wp-content tests -name '*.php' -print0)
+      - name: Testar hostname seguro do AERO
+        run: |
+          php tests/test-aero-host.php
+          php tests/test-aero-host-configured.php
+      - name: Conferir arquivos de segurança
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .github/workflows/importar-v5.yml
+          if grep -RIn --exclude-dir=.git --exclude=validar.yml -E 'alex.direito' .; then
+            echo "ERRO: hostname pessoal presente no código"
+            exit 1
+          fi
+          echo "OK hostname pessoal ausente e importador legado removido"
+      - name: Validar robots e sitemap sem rede
+        run: php tests/test-robots.php
+      - name: Conferir data de publicação extraída do HTML
+        run: php tests/test-freshness.php
       - name: Testar bloqueio da newsletter sem envio
         run: |
           php tests/test-newsletter-guard.php
           php tests/test-newsletter-guard.php --authorized
       - name: Testar canonical e compatibilidade SEO
-        run: php tests/test-seo-canonical.php
+        run: |
+          php tests/test-seo-canonical.php
+          php tests/test-seo-output.php
+          php tests/test-footer-guard.php
+          php tests/test-footer-guard.php --approved
+          php tests/test-published-placeholders.php
       - name: Testar parser e URLs das cidades
         run: php tests/test-source-parser.php
       - name: Impedir publicação de pautas brutas
@@ -53,7 +76,7 @@ jobs:
           mkdir -p dist
           (cd wp-content/plugins && zip -qr ../../dist/portal-regional-agentes.zip portal-regional-agentes)
           (cd wp-content/themes && zip -qr ../../dist/portal-regional-tema.zip portal-regional-tema)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: matrix.php == '8.2'
         with:
           name: portal-regional-wordpress
@@ -77,8 +100,8 @@ jobs:
           --health-cmd="healthcheck.sh --connect --innodb_initialized"
           --health-interval=10s --health-timeout=5s --health-retries=12
     steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: '8.2'
           extensions: mbstring, dom, xml, mysqli, pdo_mysql, curl
@@ -87,7 +110,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/e1b93919b8da39cbc3707f44bd2c61df3bd5b0d6/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          echo "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  /tmp/wp-cli.phar" | sha512sum --check --strict
           mkdir -p /tmp/portal-wp
           php /tmp/wp-cli.phar core download --path=/tmp/portal-wp --allow-root
           php /tmp/wp-cli.phar config create --path=/tmp/portal-wp --dbname=portalregional --dbuser=portal --dbpass=testpassword --dbhost=127.0.0.1:3306 --allow-root
@@ -98,12 +122,15 @@ jobs:
           php /tmp/wp-cli.phar plugin activate portal-regional-agentes --path=/tmp/portal-wp --allow-root
           php /tmp/wp-cli.phar theme activate portal-regional-tema --path=/tmp/portal-wp --allow-root
           php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/smoke-wordpress.php" --path=/tmp/portal-wp --allow-root
+          php tests/test-fingerprint-concurrency.php /tmp/portal-wp/wp-load.php
+          php tests/test-collector-concurrency.php /tmp/portal-wp/wp-load.php
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/test-published-placeholders.php" --path=/tmp/portal-wp --allow-root
 
   staging-docker:
     name: Docker Railway / acesso restrito
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Conferir configuração de homologação
         run: python3 tests/test-staging-railway.py
       - name: Compilar imagem WordPress de homologação
