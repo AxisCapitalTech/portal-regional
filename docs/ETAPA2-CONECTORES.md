@@ -37,3 +37,7 @@ Não fazer merge/deploy; sem publicação automática, IA, e-mail, WhatsApp, pus
 ## Complemento da revisão — índice de sitemaps
 
 O conector de Arapongas agora tenta `<sitemapindex>` caso o sitemap declarado não traga `<urlset>` com matérias recentes. Limites conservadores: até dois arquivos filhos por execução, mesmo domínio HTTPS, caminho sujeito a `robots.txt` e `Crawl-delay`, sem recursão; notícias só entram como `pending`. Teste sintético em `tests/test-robots.php` cobre índice recente, índice antigo, URLSet e tamanho máximo. **Ainda falta validar em rede real** e observar se o formato do sitemap oficial coincide.
+
+## A2-07 — medição em homologação autorizada (22/10/2026)
+
+O limite de até quatro buscas adicionais de data, o reaproveitamento da página de Arapongas e os intervalos Crawl-delay são guardas de código, **não** uma medição do tempo total de coleta. Medir duração por fonte, percentis, timeout e número de requisições somente em WordPress de homologação com acesso e termos autorizados. Nenhuma rede real, cron ou coleta foi habilitada nesta etapa. O achado A2-07 permanece parcial até a medição.
