@@ -240,6 +240,7 @@ final class PR_Agentes {
         PR_Fingerprint_Index::install();
         $lock = PR_Collector_Lock::acquire();
         if (!$lock) { return; }
+        $lock_lost = false;
         $stats = ['created'=>0, 'duplicates'=>0, 'stale'=>0, 'errors'=>[], 'started'=>time()];
         require_once __DIR__.'/includes/class-pra-feed-reader.php';
         try {
@@ -296,13 +297,21 @@ final class PR_Agentes {
                     $stats['created']++;
                 }
             }
+        } catch (RuntimeException $e) {
+            if (str_starts_with($e->getMessage(), 'Lock de coleta perdido')) {
+                $stats['aborted'] = 'lock perdido';
+                $lock_lost = true;
+            } else {
+                $stats['errors'][] = 'Falha na coleta: '.mb_substr($e->getMessage(),0,150);
+                error_log('Portal Regional feed error: '.$e->getMessage());
+            }
         } catch (Throwable $e) {
             $stats['errors'][] = 'Falha na coleta: '.mb_substr($e->getMessage(),0,150);
             error_log('Portal Regional feed error: '.$e->getMessage());
         } finally {
             $stats['finished'] = time();
             update_option(self::REPORT, $stats, false);
-            $lock->release();
+            if (!$lock_lost) { $lock->release(); }
         }
     }
     public static function metabox(): void {
