@@ -60,12 +60,15 @@ final class PR_Source_Parser {
   }
   private static function article_context(DOMElement $anchor):bool {
     $positive=false;
-    for($node=$anchor;$node;$node=$node->parentNode){
+    for($node=$anchor,$depth=0;$node;$node=$node->parentNode,$depth++){
       if(!$node instanceof DOMElement)continue;
       $tag=strtolower($node->tagName);
       if(in_array($tag,['nav','header','footer','aside'],true))return false;
+      $classes=$node->getAttribute('class');
+      if(preg_match('/(?:sidebar|widget|menu|banner|breadcrumb)/i',$classes))return false;
+      if($depth>3)continue;
       if(in_array($tag,['article','h2','h3','h4'],true))$positive=true;
-      if(preg_match('/(?:post|noticia|entry|news|feed|article)/i',$node->getAttribute('class')))$positive=true;
+      if(preg_match('/(?:^|\s)(?:post|noticia|entry|news|feed|article)(?:[-_](?:item|card|entry|title))?(?:\s|$)/i',$classes))$positive=true;
     }
     return $positive;
   }

@@ -5,7 +5,11 @@ require_once __DIR__.'/class-pra-source-parser.php';
 require_once __DIR__.'/class-pra-robots.php';
 require_once __DIR__.'/class-pra-freshness.php';
 require_once __DIR__.'/class-pra-fingerprint.php';
+require_once __DIR__.'/class-pra-collector-lock.php';
 final class PR_Official {
+  private const DATE_FETCH_LIMIT=4;
+  private static int $date_fetches=0;
+  private static array $date_info=[];
   private const OPT='pra_official_options';
   private const LOG='pra_official_report';
   private const HEALTH='pra_official_health';
@@ -13,11 +17,11 @@ final class PR_Official {
   private const LOCK='pra_official_lock';
   private const META='_pra_source_fingerprint';
   private const SOURCES=[
-    'arapongas'=>['label'=>'Prefeitura de Arapongas','url'=>'https://arapongas.atende.net/cidadao/noticia','city'=>'Arapongas','kind'=>'html'],
-    'londrina'=>['label'=>'Blog Oficial de Londrina','url'=>'https://blog.londrina.pr.gov.br/','rss'=>'https://blog.londrina.pr.gov.br/?feed=rss2','city'=>'Londrina','kind'=>'rss-html'],
-    'maringa'=>['label'=>'Prefeitura de Maringá','url'=>'https://www.maringa.pr.gov.br/noticias','city'=>'Maringá','kind'=>'html'],
-    'apucarana'=>['label'=>'Prefeitura de Apucarana','url'=>'https://www.apucarana.pr.gov.br/site/noticias/','city'=>'Apucarana','kind'=>'html'],
-    'aen'=>['label'=>'Agência Estadual de Notícias (Paraná)','url'=>'https://www.parana.pr.gov.br/aen/arquivo','city'=>'Paraná','kind'=>'html']
+    'arapongas'=>['terms_url'=>'','label'=>'Prefeitura de Arapongas','url'=>'https://arapongas.atende.net/cidadao/noticia','city'=>'Arapongas','kind'=>'html'],
+    'londrina'=>['terms_url'=>'','label'=>'Blog Oficial de Londrina','url'=>'https://blog.londrina.pr.gov.br/','rss'=>'https://blog.londrina.pr.gov.br/?feed=rss2','city'=>'Londrina','kind'=>'rss-html'],
+    'maringa'=>['terms_url'=>'','label'=>'Prefeitura de Maringá','url'=>'https://www.maringa.pr.gov.br/noticias','city'=>'Maringá','kind'=>'html'],
+    'apucarana'=>['terms_url'=>'','label'=>'Prefeitura de Apucarana','url'=>'https://www.apucarana.pr.gov.br/site/noticias/','city'=>'Apucarana','kind'=>'html'],
+    'aen'=>['terms_url'=>'','label'=>'Agência Estadual de Notícias (Paraná)','url'=>'https://www.parana.pr.gov.br/aen/arquivo','city'=>'Paraná','kind'=>'html']
   ];
   public static function init(): void {
     add_action('admin_menu',[__CLASS__,'menu']);
@@ -51,7 +55,7 @@ final class PR_Official {
       $indicator=$last ? wp_date('d/m/Y H:i',$last).($fresh?' · atualizada':' · há mais de 3 horas') : 'Não confirmada';
       $status=(string)($x['status']??'Ainda não testado');
       if(empty($o[$key]))$status='Desativada';
-      echo '<tr><td>'.esc_html($src['label']).'</td><td>'.esc_html($status).'</td><td>'.esc_html($indicator).'</td><td>'.(int)($x['created']??0).'</td><td>'.(int)($x['duplicates']??0).'</td></tr>';
+      echo '<tr><td>'.esc_html($src['label']).'<br>Termos: '.($src['terms_url']?esc_html($src['terms_url']):'não localizado').'</td><td>'.esc_html($status).' · pendente de data: '.(int)($x['pending_date']??0).'</td><td>'.esc_html($indicator).'</td><td>'.(int)($x['created']??0).'</td><td>'.(int)($x['duplicates']??0).'</td></tr>';
     }
     echo '</tbody></table>';
     echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="pra_official_save">';wp_nonce_field('pra_official_save');
@@ -103,12 +107,12 @@ final class PR_Official {
       $status='invalid';
     } else {
       $created=self::create($item,self::SOURCES[$kind],$kind);
-      $status=in_array($created,['created','duplicate'],true)?$created:'error';
+      $status=$created==='created_pending_date'?'created':(in_array($created,['created','duplicate'],true)?$created:'error');
     }
     wp_safe_redirect(add_query_arg('link_status',$status,admin_url('tools.php?page=pra-oficiais')));
     exit;
   }
-  private static function robots_policy(string $url):array {
+  public static function robots_policy(string $url):array {
     $host=(string)wp_parse_url($url,PHP_URL_HOST);
     $path=(string)wp_parse_url($url,PHP_URL_PATH);
     $query=(string)wp_parse_url($url,PHP_URL_QUERY);
@@ -130,7 +134,7 @@ final class PR_Official {
     if(!$policy['allowed'])throw new RuntimeException('robots.txt proíbe a coleta neste caminho');
     return $policy;
   }
-  private static function source_get(string $url,array $policy,array $headers=[]){
+  public static function source_get(string $url,array $policy,array $headers=[]){
     $host=(string)wp_parse_url($url,PHP_URL_HOST);
     $delay=(int)($policy['delay']??0);
     if($delay){
@@ -189,7 +193,7 @@ final class PR_Official {
         elseif(preg_match('~<title[^>]*>(.*?)</title>~isu',$html,$match))$title=html_entity_decode(strip_tags($match[1]),ENT_QUOTES|ENT_HTML5,'UTF-8');
         $title=sanitize_text_field($title);
         if(mb_strlen($title)<23)continue;
-        $items[]=['title'=>$title,'link'=>$link['link'],'date'=>PR_Official_Freshness::date_from_html($html),'sitemap_lastmod'=>$link['lastmod']];
+        $items[]=['title'=>$title,'link'=>$link['link'],'date'=>PR_Official_Freshness::date_from_html($html),'date_has_time'=>PR_Official_Freshness::info_from_html($html)['has_time'],'date_checked'=>true,'sitemap_lastmod'=>$link['lastmod']];
       }catch(RuntimeException $e){break;} // cumprir Crawl-delay, não contornar bloqueios
     }
     if(!$items)throw new RuntimeException('Sitemap encontrado, mas itens não acessíveis; usar conector manual');
@@ -264,11 +268,14 @@ final class PR_Official {
    * A missing/unreadable date is returned as 0, never inferred from crawl time.
    */
   private static function source_date(string $url):int {
+    if(self::$date_fetches>=self::DATE_FETCH_LIMIT)return 0;
+    self::$date_fetches++;
     try {
       $policy=self::robots_policy($url);
       $response=self::source_get($url,$policy,['Accept'=>'text/html']);
       if(is_wp_error($response)||(int)wp_remote_retrieve_response_code($response)!==200)return 0;
-      return PR_Official_Freshness::date_from_html((string)wp_remote_retrieve_body($response));
+      self::$date_info[$url]=PR_Official_Freshness::info_from_html((string)wp_remote_retrieve_body($response));
+      return self::$date_info[$url]['date'];
     } catch(Throwable $error){return 0;}
   }
   private static function duplicate(string $fingerprint):bool {
@@ -280,41 +287,44 @@ final class PR_Official {
     $title=mb_substr(sanitize_text_field((string)$item['title']),0,200);
     $date=(int)($item['date']??0);
     // HTML list pages are not evidence of publication date. Inspect source articles.
-    if($date===0)$date=self::source_date((string)$item['link']);
+    if($date===0 && empty($item['date_checked']))$date=self::source_date((string)$item['link']);
+    $has_time=$item['date_has_time']??(self::$date_info[$item['link']]['has_time']??true);
     if($date && ($date<time()-7*DAY_IN_SECONDS || $date>time()+DAY_IN_SECONDS))return 'stale';
     $high=self::risky($title);
     $body='<p><strong>PAUTA DE MONITORAMENTO — NÃO PUBLICAR SEM REVISÃO.</strong></p>';
-    $body.='<p><strong>Fonte:</strong> '.esc_html($src['label']).' · <strong>Cidade:</strong> '.esc_html($src['city']).' · <strong>Data da publicação:</strong> '.($date?esc_html(wp_date('d/m/Y H:i',$date)):'não identificada').'</p>';
+    $body.='<p><strong>Fonte:</strong> '.esc_html($src['label']).' · <strong>Cidade:</strong> '.esc_html($src['city']).' · <strong>Data da publicação:</strong> '.($date?esc_html(wp_date($has_time?'d/m/Y H:i':'d/m/Y',$date).($has_time?'':' · hora não informada')):'não identificada · pendente de data').'</p>';
     $body.='<p><a href="'.esc_url($item['link']).'" rel="noopener noreferrer nofollow" target="_blank">Abrir publicação na fonte oficial</a></p>';
     $body.='<p>Este monitor recuperou apenas um título e um link. Antes de redigir, verificar data, fatos, autoria, contexto, licença e eventuais atualizações.</p>';
     if($high)$body.='<p><strong>ALTO RISCO EDITORIAL:</strong> conferir integralmente com responsável humano antes de considerar publicação.</p>';
-    if(!PR_Fingerprint_Index::reserve($fp))return self::duplicate($fp)?'duplicate':'error';
+    if(!PR_Fingerprint_Index::reserve($fp))return 'duplicate';
     $id=wp_insert_post(['post_type'=>'post','post_status'=>'pending','post_title'=>'[PAUTA] '.$title,'post_content'=>wp_kses_post($body),'post_excerpt'=>'Pauta em conferência, não publicada.','post_category'=>self::category_ids($src['city']),'comment_status'=>'closed'],true);
     if(is_wp_error($id)){PR_Fingerprint_Index::release($fp);return 'error';}
     PR_Fingerprint_Index::commit($fp,(int)$id);
     update_post_meta($id,self::META,$fp);update_post_meta($id,'_pra_source_url',$item['link']);
     update_post_meta($id,'_pra_source_name',$src['label']);update_post_meta($id,'_pra_source_date',$date);
     update_post_meta($id,'_pra_city',$src['city']);update_post_meta($id,'_pra_sensitivity',$high?'alto':'normal');
+    if(!empty($item['sitemap_lastmod']))update_post_meta($id,'_pra_sitemap_lastmod',(int)$item['sitemap_lastmod']);
+    update_post_meta($id,'_pra_source_has_time',$has_time?1:0);
     update_post_meta($id,'_pra_capture_time',time());update_post_meta($id,'_pra_connector',$key);
-    return 'created';
+    return $date?'created':'created_pending_date';
   }
   public static function collect(bool $manual=false):void {
     $o=self::options();if(!$manual && empty($o['enabled']))return;
-    $expiration=(int)get_option(self::LOCK,0);
-    if($expiration>time())return;
-    if($expiration)delete_option(self::LOCK);
-    if(!add_option(self::LOCK,time()+25*MINUTE_IN_SECONDS,'',false))return;
+    PR_Fingerprint_Index::install();
+    $lock=PR_Collector_Lock::acquire();if(!$lock)return;
+    self::$date_fetches=0;self::$date_info=[];
     $log=['started'=>time(),'created'=>0,'duplicates'=>0,'sources'=>[]];
     $health=(array)get_option(self::HEALTH,[]);
     try {
       foreach(self::SOURCES as $key=>$src){
+        $lock->renew();
         if(empty($o[$key])){$log['sources'][$key]=['status'=>'Desativada'];continue;}
         $x=['status'=>'Não executada','created'=>0,'duplicates'=>0,'found'=>0,'errors'=>0];
         try {
           $items=self::items($key,$src);$x['found']=count($items);
           foreach($items as $item){
             $status=self::create($item,$src,$key);
-            if($status==='created'){$x['created']++;$log['created']++;}
+            if(in_array($status,['created','created_pending_date'],true)){$x['created']++;$log['created']++;if($status==='created_pending_date')$x['pending_date']=($x['pending_date']??0)+1;}
             elseif($status==='duplicate'){$x['duplicates']++;$log['duplicates']++;}
             elseif($status==='stale'){$x['stale']=($x['stale']??0)+1;}
             else {$x['status']='Falha parcial ao gravar pauta'; $x['errors']++;}
@@ -328,12 +338,12 @@ final class PR_Official {
           } else {
             $health[$key]['last_error']='Falha parcial ao salvar algumas pautas';
           }
-        }catch(Throwable $e){$manual=in_array($key,['arapongas','maringa'],true);
-          $x['status']=($manual?'MANUAL — ':'Erro: ').mb_substr($e->getMessage(),0,110);$health[$key]['last_error']=mb_substr($e->getMessage(),0,110);error_log('Portal Regional fonte '.str_replace(['\r','\n'], '',$key).': '.$e->getMessage());}
+        }catch(Throwable $e){$x['errors']++;$assisted=in_array($key,['arapongas','maringa'],true);
+          $x['status']=($assisted?'MANUAL — ':'Erro: ').mb_substr($e->getMessage(),0,110);$health[$key]['last_error']=mb_substr($e->getMessage(),0,110);error_log('Portal Regional fonte '.str_replace(['\r','\n'], '',$key).': '.$e->getMessage());}
         $health[$key]['last_attempt']=time();
         $log['sources'][$key]=$x;
       }
-    }finally{$log['finished']=time();update_option(self::LOG,$log,false);update_option(self::HEALTH,$health,false);delete_option(self::LOCK);}
+    }finally{$log['finished']=time();update_option(self::LOG,$log,false);update_option(self::HEALTH,$health,false);$lock->release();}
   }
 }
 PR_Official::init();

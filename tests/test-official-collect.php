@@ -50,7 +50,30 @@ function wp_insert_post($args,$wp_error=false){
 }
 function get_post_meta($id,$key,$single=true){return $GLOBALS['meta'][$id][$key]??'';}
 function update_post_meta($id,$key,$value){$GLOBALS['meta'][$id][$key]=$value;}
-class MockDB{public $postmeta="wp_postmeta";function prepare($query,...$args){return (string)end($args);}function get_var($fp){foreach($GLOBALS['meta'] as $id=>$meta)if(($meta['_pra_source_fingerprint']??'')===$fp)return $id;return null;}}
+function wp_cache_delete(...$args){}
+class MockDB {
+ public $postmeta='wp_postmeta';public $options='wp_options';public $prefix='wp_';public $fingerprints=[];
+ function prepare($sql,...$args){return [$sql,$args];}
+ function get_var($q){
+  [$sql,$args]=$q;
+  if(str_contains($sql,'option_value'))return $GLOBALS['opts'][$args[0]]??null;
+  $fp=end($args);foreach($GLOBALS['meta'] as $id=>$meta)if(($meta['_pra_source_fingerprint']??'')===$fp)return $id;
+  return null;
+ }
+ function query($q){
+  [$sql,$args]=$q;
+  if(str_contains($sql,'wp_options')){
+   if(str_starts_with($sql,'UPDATE')){[$next,$key,$old]=$args;if(($GLOBALS['opts'][$key]??null)!==$old)return 0;$GLOBALS['opts'][$key]=$next;return 1;}
+   [$key,$old]=$args;if(($GLOBALS['opts'][$key]??null)!==$old)return 0;unset($GLOBALS['opts'][$key]);return 1;
+  }
+  if(!empty($GLOBALS['sql_error']))return false;
+  if(str_starts_with($sql,'DELETE'))return 0;
+  if(str_starts_with($sql,'INSERT')){if(isset($this->fingerprints[$args[0]]))return 0;$this->fingerprints[$args[0]]=0;return 1;}
+  throw new RuntimeException('Unexpected SQL in fixture');
+ }
+ function update($table,$data,$where,...$args){$this->fingerprints[$where['fingerprint']]=$data['post_id'];return 1;}
+ function delete($table,$where,...$args){unset($this->fingerprints[$where['fingerprint']]);return 1;}
+}
 $GLOBALS['wpdb']=new MockDB;
 @mkdir(ABSPATH.'wp-includes',0777,true);
 // Source fixture only: the test does not call remote network or WordPress install.
@@ -75,6 +98,7 @@ PR_Official::collect(true);$h=get_option('pra_official_health');$r=get_option('p
 check('failed source preserves last success',$h['maringa']['last_success']===$prior);
 check('failed source reports manual fallback',str_contains($r['sources']['maringa']['status'],'MANUAL'));
 
+$counter=new ReflectionProperty(PR_Official::class,'date_fetches');$counter->setAccessible(true);$counter->setValue(null,0);
 $create=new ReflectionMethod(PR_Official::class,'create');$create->setAccessible(true);
 $url='https://blog.londrina.pr.gov.br/?p=999999999';
 $GLOBALS['responses'][$url]=['status'=>200,'body'=>'<meta property="article:published_time" content="'.gmdate('c',time()-9*86400).'">'];
@@ -91,3 +115,19 @@ $rss=new ReflectionMethod(PR_Official::class,'london_rss');$rss->setAccessible(t
 $items=$rss->invoke(null,['rss'=>$rss_url]);
 check('RSS keeps recent dated item and rejects older than seven days',count($items)===1&&$items[0]['date']>time()-86400);
 check('RSS uses policy-controlled HTTP transport',in_array($rss_url,$GLOBALS['calls'],true));
+
+$defs=(new ReflectionClass(PR_Official::class))->getConstant('SOURCES');
+check('every source has terms_url without invented values',count(array_filter($defs,fn($s)=>array_key_exists('terms_url',$s)))===5);
+$counter->setValue(null,0);$GLOBALS['calls']=[];
+$source_date=new ReflectionMethod(PR_Official::class,'source_date');$source_date->setAccessible(true);
+for($i=0;$i<12;$i++)$source_date->invoke(null,'https://blog.londrina.pr.gov.br/?p='.(810000+$i));
+$pages=array_filter($GLOBALS['calls'],fn($url)=>str_contains($url,'?p='));
+check('date fetch budget caps article requests at four',count($pages)===4);
+$counter->setValue(null,0);$GLOBALS['calls']=[];
+$create->invoke(null,['title'=>'Fixture local sem data de publicação conhecida','link'=>'https://arapongas.atende.net/cidadao/noticia/fixture-sem-data','date_checked'=>true,'sitemap_lastmod'=>123],['label'=>'Fixture','city'=>'Arapongas'],'arapongas');
+check('already fetched Arapongas page is never fetched again',$GLOBALS['calls']===[]);
+check('sitemap timestamp persisted separately',in_array(123,array_column($GLOBALS['meta'],'_pra_sitemap_lastmod'),true));
+$GLOBALS['sql_error']=true;$GLOBALS['responses'][$rss_url]['body']=str_replace('700000','900000',$xml);
+PR_Official::collect(true);$report=get_option('pra_official_report');
+check('SQL failure reported rather than duplicate',str_contains($report['sources']['londrina']['status'],'erro SQL') && $report['sources']['londrina']['duplicates']===0);
+$GLOBALS['sql_error']=false;

@@ -41,3 +41,10 @@ foreach($not_article as $url){
 $menu='<nav><h3><a href="https://www.apucarana.pr.gov.br/site/secretaria-de-gestao-da-cidade/">Secretaria de Gestão da Cidade e Informações</a></h3></nav>';
 if(PR_Source_Parser::extract($menu,'apucarana')){fwrite(STDERR,"FAIL Apucarana menu accepted\n");exit(1);}
 echo "OK Apucarana navigation rejected\n";
+$link='<a href="/site/conheca-o-programa-municipal-de-habitacao">Conheça o programa municipal de habitação da cidade</a>';
+foreach(['sidebar','widget','menu','banner','breadcrumb'] as $class){
+ $html='<div class="page-noticias"><div class="'.$class.'"><h2>'.$link.'</h2></div></div>';
+ if(PR_Source_Parser::extract($html,'apucarana')){fwrite(STDERR,"FAIL excluded context $class\n");exit(1);}
+}
+if(PR_Source_Parser::extract('<article><div><div><div>'.$link.'</div></div></div></article>','apucarana')){fwrite(STDERR,"FAIL distant container\n");exit(1);}
+echo "OK sidebar/widget/menu/banner/breadcrumb and distant wrapper rejected (synthetic fixtures)\n";

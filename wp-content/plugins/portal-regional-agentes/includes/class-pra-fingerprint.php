@@ -35,8 +35,12 @@ KEY post_id (post_id)
     if(!preg_match('/^[0-9a-f]{64}$/D',$fingerprint))return false;
     if(!method_exists($wpdb,'query'))return true; // synthetic unit shim; integration tests use MariaDB
     $table=self::table();
+    $expired=$wpdb->query($wpdb->prepare("DELETE FROM $table WHERE fingerprint=%s AND post_id=0 AND created_at < UTC_TIMESTAMP() - INTERVAL 30 MINUTE",$fingerprint));
+    if($expired===false)throw new RuntimeException('Índice de fingerprints: erro SQL ao limpar reserva');
     $sql=$wpdb->prepare("INSERT IGNORE INTO $table (fingerprint,post_id,created_at) VALUES (%s,0,UTC_TIMESTAMP())",$fingerprint);
-    return $wpdb->query($sql)===1;
+    $result=$wpdb->query($sql);
+    if($result===false)throw new RuntimeException('Índice de fingerprints: erro SQL ao reservar pauta');
+    return $result===1;
   }
   public static function commit(string $fingerprint,int $post_id):void {
     global $wpdb;

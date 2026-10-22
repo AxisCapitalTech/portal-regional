@@ -2,7 +2,14 @@
 /** Conservative robots.txt policy reader: read-only, never overrides exclusions. */
 if(!defined('ABSPATH'))exit;
 final class PR_Official_Robots {
+  private static function normalize(string $value):string {
+    return preg_replace_callback('/%([0-9a-f]{2})/i',static function($m){
+      $char=chr(hexdec($m[1]));
+      return preg_match('/[A-Za-z0-9._~-]/',$char)?$char:'%'.strtoupper($m[1]);
+    },$value);
+  }
   public static function parse(string $robots,string $path,string $ua='PortalRegionalTriagem'):array {
+    $path=self::normalize($path);
     $groups=[];$agents=[];$rules=[];$sitemaps=[];$inRules=false;
     $flush=function()use(&$groups,&$agents,&$rules,&$inRules){
       if($agents)$groups[]=['agents'=>$agents,'rules'=>$rules];
@@ -42,7 +49,10 @@ final class PR_Official_Robots {
     foreach($rules as [$kind,$pattern]){
       if($kind==='crawl-delay'){$delay=max($delay,(int)ceil((float)$pattern));continue;}
       if($pattern==='')continue;
-      $regex='~^'.str_replace(['\\*','\\$'],['.*','$'],preg_quote($pattern,'~')).'~';
+      $pattern=self::normalize($pattern);
+      $end=str_ends_with($pattern,'$');
+      $literal=$end?substr($pattern,0,-1):$pattern;
+      $regex='~^'.str_replace('\\*','.*',preg_quote($literal,'~')).($end?'$':'').'~';
       if(!preg_match($regex,$path))continue;
       $l=strlen(str_replace(['*','$'],'',$pattern));
       if($l>$length||($l===$length&&$kind==='allow')){$allowed=$kind==='allow';$length=$l;}
@@ -54,7 +64,7 @@ final class PR_Official_Robots {
    * external domains, nested indexes or more than two child files per run.
    */
   public static function sitemap_children(string $xml,int $now):array {
-    if(strlen($xml)>2000000)return [];
+    if(strlen($xml)>2000000||preg_match('/<!DOCTYPE|<!ENTITY/i',$xml))return [];
     $prior=libxml_use_internal_errors(true);
     try{$root=simplexml_load_string($xml,'SimpleXMLElement',LIBXML_NONET);}
     finally{libxml_clear_errors();libxml_use_internal_errors($prior);}
@@ -63,17 +73,22 @@ final class PR_Official_Robots {
     foreach($root->sitemap??[] as $node){
       $url=trim((string)$node->loc);
       if($url===''||strlen($url)>500)continue;
+      $updated=0;$batch=0;
       if(isset($node->lastmod)){
         $updated=strtotime((string)$node->lastmod);
         if($updated && ($updated<$now-48*3600||$updated>$now+3600))continue;
       }
-      $out[]=$url;
-      if(count($out)>=2)break;
+      if(!$updated && preg_match('/(\d{4})_(\d{2})_(\d{2})_(\d+)/',basename((string)parse_url($url,PHP_URL_PATH)),$m)){
+        if(checkdate((int)$m[2],(int)$m[3],(int)$m[1]))$updated=(int)strtotime($m[1].'-'.$m[2].'-'.$m[3].' UTC');
+        $batch=(int)$m[4];
+      }
+      $out[]=['url'=>$url,'date'=>$updated,'batch'=>$batch];
     }
-    return $out;
+    usort($out,static fn($a,$b)=>($b['date']<=>$a['date'])?:($b['batch']<=>$a['batch']));
+    return array_column(array_slice($out,0,2),'url');
   }
   public static function sitemap_urls(string $xml,string $kind,int $now):array {
-    if(strlen($xml)>2000000)return [];
+    if(strlen($xml)>2000000||preg_match('/<!DOCTYPE|<!ENTITY/i',$xml))return [];
     $prior=libxml_use_internal_errors(true);
     try{$root=simplexml_load_string($xml,'SimpleXMLElement',LIBXML_NONET);}
     finally{libxml_clear_errors();libxml_use_internal_errors($prior);}
