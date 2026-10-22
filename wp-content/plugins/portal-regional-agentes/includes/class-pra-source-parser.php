@@ -6,7 +6,7 @@ final class PR_Source_Parser {
     'arapongas' => ['host'=>'arapongas.atende.net','path'=>'~^/cidadao/noticia/(?!categoria/)[a-z0-9-]+/?$~i'],
     'londrina' => ['host'=>'blog.londrina.pr.gov.br','path'=>'~^/$~', 'query'=>'p'],
     'maringa'  => ['host'=>'www.maringa.pr.gov.br','path'=>'~^/noticias/[a-z0-9-]+/[0-9]+/?$~i'],
-    'apucarana'=> ['host'=>'www.apucarana.pr.gov.br','path'=>'~^/site/[a-z0-9-]+/?$~i'],
+    'apucarana'=> ['host'=>'www.apucarana.pr.gov.br','path'=>'~^/site/[a-z0-9]+(?:-[a-z0-9]+){3,}/?$~i'],
     'aen'      => ['host'=>'www.parana.pr.gov.br','path'=>'~^/aen/Noticia/[a-z0-9-]+/?$~i'],
   ];
   public static function canonical(string $href, string $kind): string {
@@ -36,6 +36,7 @@ final class PR_Source_Parser {
         $xp=new DOMXPath($dom);$anchors=$xp->query('//a[@href]');
         if ($anchors!==false)foreach($anchors as $a){
           $url=self::canonical((string)$a->getAttribute('href'),$kind);if (!$url || isset($links[$url]))continue;
+          if($kind==='apucarana' && !self::article_context($a))continue;
           $title=self::clean((string)$a->textContent);
           if (self::bad_title($title)) {
             $ancestor=$a->parentNode;
@@ -48,7 +49,7 @@ final class PR_Source_Parser {
         }
       }
     }
-    if (!$links && preg_match_all('~<a\b[^>]*\bhref\s*=\s*(["\'])(.*?)\1[^>]*>(.*?)</a>~isu',$html,$found,PREG_SET_ORDER)){
+    if (!$links && $kind!=='apucarana' && preg_match_all('~<a\b[^>]*\bhref\s*=\s*(["\'])(.*?)\1[^>]*>(.*?)</a>~isu',$html,$found,PREG_SET_ORDER)){
       foreach(array_slice($found,0,2500) as $a){
         $url=self::canonical($a[2],$kind);if(!$url || isset($links[$url]))continue;
         $title=self::clean(strip_tags($a[3]));if(self::bad_title($title))continue;
@@ -56,6 +57,20 @@ final class PR_Source_Parser {
       }
     }
     return array_values($links);
+  }
+  private static function article_context(DOMElement $anchor):bool {
+    $positive=false;
+    for($node=$anchor,$depth=0;$node;$node=$node->parentNode,$depth++){
+      if(!$node instanceof DOMElement)continue;
+      $tag=strtolower($node->tagName);
+      if(in_array($tag,['nav','header','footer','aside'],true))return false;
+      $classes=$node->getAttribute('class');
+      if(preg_match('/(?:sidebar|widget|menu|banner|breadcrumb)/i',$classes))return false;
+      if($depth>3)continue;
+      if(in_array($tag,['article','h2','h3','h4'],true))$positive=true;
+      if(preg_match('/(?:^|\s)(?:post|noticia|entry|news|feed|article)(?:[-_](?:item|card|entry|title))?(?:\s|$)/i',$classes))$positive=true;
+    }
+    return $positive;
   }
   private static function clean(string $text): string {
     $text=html_entity_decode($text,ENT_QUOTES|ENT_HTML5,'UTF-8');

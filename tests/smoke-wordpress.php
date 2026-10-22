@@ -22,6 +22,10 @@ foreach ($official_links as $link) {
 
 require_condition((bool)locate_template('front-page.php'), 'V7 front page template available');
 require_condition(class_exists('PR1_Aero_Bridge'), 'AERO weather bridge initialized');
+require_condition(PR1_Aero_Bridge::app_url()==='', 'AERO external URL disabled when constant is absent');
+require_condition(PR1_Aero_Bridge::validated_host('https://host.example')==='', 'AERO hostname rejects scheme');
+require_condition(PR1_Aero_Bridge::validated_host('aero.example.org')==='aero.example.org', 'AERO hostname accepts configured DNS');
+
 require_condition(file_exists(get_template_directory().'/page-pr1-aero.php'), 'AERO dedicated template exists');
 require_condition(file_exists(get_template_directory().'/assets/pr1-aero.js'), 'AERO frontend controller exists');
 require_condition(in_array('maringa',PR1_Aero_Bridge::city_ids(),true), 'AERO city catalog installed');
@@ -35,6 +39,19 @@ if ($previous_brand === false) remove_theme_mod('regional_public_brand');
 else set_theme_mod('regional_public_brand', $previous_brand);
 require_condition(regional_public_brand() === 'PR1 News', 'brand restored');
 require_condition((bool)get_term_by('name', 'Arapongas','category'), 'Arapongas category');
+require_condition(class_exists('PR_Fingerprint_Index'), 'atomic fingerprint index available');
+global $wpdb;
+$table=PR_Fingerprint_Index::table();
+require_condition($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$table))===$table, 'fingerprint table installed on activation');
+$fp_test=hash('sha256','https://source.example/atomic-integration-'.wp_generate_uuid4());
+require_condition(PR_Fingerprint_Index::reserve($fp_test), 'atomic fingerprint first reservation succeeds');
+require_condition(!PR_Fingerprint_Index::reserve($fp_test), 'unique fingerprint rejects concurrent duplicate');
+PR_Fingerprint_Index::release($fp_test);
+require_condition(PR_Fingerprint_Index::reserve($fp_test), 'released uncommitted reservation can retry');
+PR_Fingerprint_Index::commit($fp_test,999999);
+require_condition(!PR_Fingerprint_Index::reserve($fp_test), 'committed fingerprint cannot reserve again');
+$wpdb->delete($table,['fingerprint'=>$fp_test],['%s']);
+
 require_condition((bool)get_term_by('name', 'Maringá','category'), 'Maringá category');
 require_condition((int)(get_option('pra_official_options')['enabled']??-1) === 0, 'automatic collection defaults off');
 $id=wp_insert_post(['post_title'=>'[PAUTA] Verificação fictícia', 'post_content'=>'PAUTA DE MONITORAMENTO — NÃO PUBLICAR SEM REVISÃO','post_type'=>'post','post_status'=>'pending'],true);

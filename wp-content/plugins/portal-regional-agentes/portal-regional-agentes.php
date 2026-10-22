@@ -11,6 +11,7 @@
  */
 if (!defined('ABSPATH')) { exit; }
 
+require_once __DIR__.'/includes/class-pra-fingerprint.php';
 final class PR_Agentes {
     private const OPTION = 'pra_config';
     private const REPORT = 'pra_report';
@@ -236,26 +237,37 @@ final class PR_Agentes {
     public static function collect(bool $manual = false): void {
         $o = self::options();
         if (!$manual && empty($o['enabled'])) { return; }
-        if (get_transient(self::LOCK)) { return; }
-        set_transient(self::LOCK, 1, 30 * MINUTE_IN_SECONDS);
+        PR_Fingerprint_Index::install();
+        $lock = PR_Collector_Lock::acquire();
+        if (!$lock) { return; }
+        $lock_lost = false;
         $stats = ['created'=>0, 'duplicates'=>0, 'stale'=>0, 'errors'=>[], 'started'=>time()];
-        require_once ABSPATH . WPINC . '/feed.php';
+        require_once __DIR__.'/includes/class-pra-feed-reader.php';
         try {
             foreach (self::parse_sources($o['sources']) as $source) {
-                $feed = fetch_feed($source['url']);
-                if (is_wp_error($feed)) { $stats['errors'][] = $source['name'].': falha no RSS'; continue; }
-                $limit = min(12, $feed->get_item_quantity(12));
-                $items = $feed->get_items(0, $limit);
+                $lock->renew();
+                try {
+                    $policy = PR_Official::robots_policy($source['url']);
+                    $response = PR_Official::source_get($source['url'], $policy);
+                    if (is_wp_error($response) || (int)wp_remote_retrieve_response_code($response)!==200) {
+                        throw new RuntimeException('RSS indisponível ou HTTP inválido');
+                    }
+                    $items = PR_Feed_Reader::items((string)wp_remote_retrieve_body($response));
+                } catch (Throwable $e) {
+                    $stats['errors'][] = $source['name'].': '.$e->getMessage();
+                    continue;
+                }
                 foreach ($items as $item) {
                     if ($stats['created'] >= 45) { break 2; }
-                    $title = sanitize_text_field(wp_strip_all_tags((string)$item->get_title()));
-                    $link = esc_url_raw((string)$item->get_permalink());
-                    $date = (int)$item->get_date('U');
-                    if (!$date || $date < time()-10*DAY_IN_SECONDS || $date > time()+DAY_IN_SECONDS) { $stats['stale']++; continue; }
+                    $title = sanitize_text_field(wp_strip_all_tags((string)$item['title']));
+                    $link = esc_url_raw((string)$item['link']);
+                    $date = (int)$item['date'];
+                    if (!$date || $date < time()-7*DAY_IN_SECONDS || $date > time()+DAY_IN_SECONDS) { $stats['stale']++; continue; }
                     if (mb_strlen($title) < 15 || !str_starts_with($link, 'https://') || !wp_http_validate_url($link)) { continue; }
                     $fp = hash('sha256', $link);
-                    if (self::exists($fp)) { $stats['duplicates']++; continue; }
-                    $excerpt = mb_substr(sanitize_text_field(wp_strip_all_tags((string)$item->get_description())), 0, 800);
+                    if (!PR_Fingerprint_Index::reserve($fp)) { $stats['duplicates']++; continue; }
+                    if (self::exists($fp)) { PR_Fingerprint_Index::release($fp); $stats['duplicates']++; continue; }
+                    $excerpt = mb_substr(sanitize_text_field(wp_strip_all_tags((string)$item['description'])), 0, 800);
                     $region = self::classify($title, $excerpt, $source['region']);
                     $sensitive = self::risky($title, $excerpt);
                     $ai = (!empty($o['ai_enabled']) && !$sensitive) ? self::ai_summary($title, $excerpt) : '';
@@ -274,7 +286,8 @@ final class PR_Agentes {
                         'post_content'=>wp_kses_post($body), 'post_excerpt'=>'Pauta em revisão. Não publicada.',
                         'post_category'=>$cat, 'comment_status'=>'closed',
                     ], true);
-                    if (is_wp_error($id)) { $stats['errors'][] = 'Falha ao criar pauta: '.$source['name']; continue; }
+                    if (is_wp_error($id)) { PR_Fingerprint_Index::release($fp); $stats['errors'][] = 'Falha ao criar pauta: '.$source['name']; continue; }
+                    PR_Fingerprint_Index::commit($fp,(int)$id);
                     update_post_meta($id, self::META_ID, $fp);
                     update_post_meta($id, '_pra_source_url', $link);
                     update_post_meta($id, '_pra_source_name', $source['name']);
@@ -284,13 +297,21 @@ final class PR_Agentes {
                     $stats['created']++;
                 }
             }
+        } catch (RuntimeException $e) {
+            if (str_starts_with($e->getMessage(), 'Lock de coleta perdido')) {
+                $stats['aborted'] = 'lock perdido';
+                $lock_lost = true;
+            } else {
+                $stats['errors'][] = 'Falha na coleta: '.mb_substr($e->getMessage(),0,150);
+                error_log('Portal Regional feed error: '.$e->getMessage());
+            }
         } catch (Throwable $e) {
-            $stats['errors'][] = 'Falha inesperada na coleta; verificar logs privados.';
+            $stats['errors'][] = 'Falha na coleta: '.mb_substr($e->getMessage(),0,150);
             error_log('Portal Regional feed error: '.$e->getMessage());
         } finally {
             $stats['finished'] = time();
             update_option(self::REPORT, $stats, false);
-            delete_transient(self::LOCK);
+            if (!$lock_lost) { $lock->release(); }
         }
     }
     public static function metabox(): void {
@@ -302,6 +323,11 @@ final class PR_Agentes {
         echo '<p>Fonte: '.esc_html((string)get_post_meta($post->ID,'_pra_source_name',true)).'</p>';
         echo '<p><a target="_blank" rel="noopener noreferrer" href="'.esc_url($url).'">Conferir fonte original</a></p>';
         echo '<p>Sensibilidade: <strong>'.esc_html((string)get_post_meta($post->ID,'_pra_sensitivity',true)).'</strong></p>';
+        $lastmod=(int)get_post_meta($post->ID,'_pra_sitemap_lastmod',true);
+        if($lastmod)echo '<p>Data do sitemap, não da publicação: '.esc_html(wp_date('d/m/Y H:i',$lastmod)).'</p>';
+        $source_date=(int)get_post_meta($post->ID,'_pra_source_date',true);
+        if(!$source_date)echo '<p>Pendente de data</p>';
+        elseif(get_post_meta($post->ID,'_pra_source_has_time',true)==='0')echo '<p>Hora não informada</p>';
         $signed = (int)get_post_meta($post->ID, '_pra_editorial_approved_by', true);
         $signed_at = (int)get_post_meta($post->ID, '_pra_editorial_approved_at', true);
         wp_nonce_field('pra_editorial_approval_'.$post->ID, 'pra_approval_nonce');
