@@ -80,3 +80,14 @@ $url='https://blog.londrina.pr.gov.br/?p=999999999';
 $GLOBALS['responses'][$url]=['status'=>200,'body'=>'<meta property="article:published_time" content="'.gmdate('c',time()-9*86400).'">'];
 check('Londrina HTML fallback rejects old publication',
  $create->invoke(null,['title'=>'Título sintético para teste de regressão do fallback','link'=>$url],['label'=>'Fixture','city'=>'Londrina'],'londrina')==='stale');
+
+$rss_url='https://blog.londrina.pr.gov.br/?feed=rss2';
+$xml='<rss><channel>';
+foreach([time()-3600,time()-9*86400] as $index=>$timestamp)
+ $xml.='<item><title>Notícia sintética de regressão do feed municipal</title><link>https://blog.londrina.pr.gov.br/?p='.(700000+$index).'</link><pubDate>'.gmdate(DATE_RSS,$timestamp).'</pubDate></item>';
+$xml.='</channel></rss>';
+$GLOBALS['responses'][$rss_url]=['status'=>200,'body'=>$xml];
+$rss=new ReflectionMethod(PR_Official::class,'london_rss');$rss->setAccessible(true);
+$items=$rss->invoke(null,['rss'=>$rss_url]);
+check('RSS keeps recent dated item and rejects older than seven days',count($items)===1&&$items[0]['date']>time()-86400);
+check('RSS uses policy-controlled HTTP transport',in_array($rss_url,$GLOBALS['calls'],true));

@@ -111,6 +111,8 @@ final class PR_Official {
   private static function robots_policy(string $url):array {
     $host=(string)wp_parse_url($url,PHP_URL_HOST);
     $path=(string)wp_parse_url($url,PHP_URL_PATH);
+    $query=(string)wp_parse_url($url,PHP_URL_QUERY);
+    if($query!=='')$path.='?'.$query;
     if(!$host||!str_starts_with($url,'https://'))throw new RuntimeException('Robots: origem inválida');
     $key='pra_robots_'.md5($host);
     $robots=get_transient($key);
@@ -121,6 +123,7 @@ final class PR_Official {
       if($status===404)$robots=''; // RFC 9309: 4xx robots não bloqueia; 5xx é indeterminado.
       elseif($status!==200)throw new RuntimeException('robots.txt HTTP '.$status.'; coleta suspensa');
       else $robots=wp_remote_retrieve_body($res);
+      update_option('pra_crawl_last_'.md5($host),time(),false);
       set_transient($key,$robots,24*HOUR_IN_SECONDS);
     }
     $policy=PR_Official_Robots::parse($robots,$path);
@@ -140,7 +143,7 @@ final class PR_Official {
       }
       update_option($key,time(),false);
     }
-    return wp_safe_remote_get($url,['timeout'=>15,'redirection'=>2,'limit_response_size'=>2000000,'headers'=>array_merge(['User-Agent'=>'PortalRegionalTriagem/0.5'],$headers)]);
+    return wp_safe_remote_get($url,['timeout'=>15,'redirection'=>0,'limit_response_size'=>2000000,'headers'=>array_merge(['User-Agent'=>'PortalRegionalTriagem/0.5'],$headers)]);
   }
   private static function arapongas_sitemap(array $src):array {
     $policy=self::robots_policy($src['url']);
@@ -206,20 +209,28 @@ final class PR_Official {
     return $links;
   }
   private static function london_rss(array $src):array {
-    require_once ABSPATH.WPINC.'/feed.php';
-    $feed=fetch_feed($src['rss']);
-    if(is_wp_error($feed))throw new RuntimeException('Feed indisponível');
+    // Fetch through the same robots/delay policy as HTML; no hidden feed requests.
+    $policy=self::robots_policy($src['rss']);
+    $response=self::source_get($src['rss'],$policy,['Accept'=>'application/rss+xml,application/xml']);
+    if(is_wp_error($response))throw new RuntimeException('Feed indisponível');
+    if((int)wp_remote_retrieve_response_code($response)!==200)throw new RuntimeException('Feed HTTP '.(int)wp_remote_retrieve_response_code($response));
+    $xml=(string)wp_remote_retrieve_body($response);
+    if(preg_match('/<!DOCTYPE|<!ENTITY/i',$xml))throw new RuntimeException('Feed XML não permitido');
+    $prior=libxml_use_internal_errors(true);
+    try{$feed=simplexml_load_string($xml,'SimpleXMLElement',LIBXML_NONET);}
+    finally{libxml_clear_errors();libxml_use_internal_errors($prior);}
+    if(!$feed || $feed->getName()!=='rss')throw new RuntimeException('Feed RSS inválido');
     $out=[];
-    foreach($feed->get_items(0,min(16,$feed->get_item_quantity(16))) as $item){
-      $url=(string)$item->get_permalink();
-      // RSS da prefeitura pode ter permalinks amigáveis; aceita somente hospedagem oficial e HTTPS.
-      $p=wp_parse_url($url);
-      if(!is_array($p) || ($p['host']??'')!=='blog.londrina.pr.gov.br' || ($p['scheme']??'')!=='https')continue;
-      $title=sanitize_text_field(wp_strip_all_tags((string)$item->get_title()));
+    foreach($feed->channel->item??[] as $item){
+      $url=trim((string)$item->link);$p=wp_parse_url($url);
+      if(!is_array($p)||($p['host']??'')!=='blog.londrina.pr.gov.br'||($p['scheme']??'')!=='https'
+        ||isset($p['user'])||isset($p['pass'])||isset($p['port']))continue;
+      $title=sanitize_text_field(wp_strip_all_tags((string)$item->title));
       if(mb_strlen($title)<23)continue;
-      $date=(int)$item->get_date('U');
-      if(!$date || $date<time()-14*DAY_IN_SECONDS || $date>time()+DAY_IN_SECONDS)continue;
+      $date=strtotime((string)$item->pubDate);
+      if(!$date||$date<time()-7*DAY_IN_SECONDS||$date>time()+DAY_IN_SECONDS)continue;
       $out[]=['title'=>$title,'link'=>esc_url_raw($url),'date'=>$date];
+      if(count($out)>=16)break;
     }
     if(!$out)throw new RuntimeException('Feed sem publicações recentes');
     return $out;
