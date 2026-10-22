@@ -21,6 +21,9 @@ $http=function($pre,$args,$url){
  else return new WP_Error('fixture_only','Network disabled in regression');
  return ['headers'=>[],'body'=>$body,'response'=>['code'=>200,'message'=>'OK'],'cookies'=>[]];
 };
+// Treat the TEST-NET fixture as the isolated site's own host: no DNS/network required.
+$fixtureHome=static fn()=> 'https://192.0.2.1';
+add_filter('pre_option_home',$fixtureHome);
 add_filter('pre_http_request',$http,10,3);
 try{
  PR_Fingerprint_Index::install();
@@ -67,7 +70,7 @@ finally{
  PR_Fingerprint_Index::release($fp);delete_option('pra_official_lock');
  update_option('pra_config',$oldConfig);update_option('pra_official_options',$oldOfficial);
  update_option('pra_report',$oldReport);update_option('pra_official_report',$oldOfficialReport);
- remove_filter('pre_http_request',$http,10);
+ remove_filter('pre_http_request',$http,10);remove_filter('pre_option_home',$fixtureHome);
  foreach(glob($dir.'/*') as $file)unlink($file);rmdir($dir);
 }
 exit(empty($failed)?0:1);
