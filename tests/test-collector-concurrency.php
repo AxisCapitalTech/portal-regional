@@ -14,6 +14,7 @@ $dir=sys_get_temp_dir().'/pra-lock-'.bin2hex(random_bytes(8));mkdir($dir,0700);$
 $fp=hash('sha256',$dir);$table=PR_Fingerprint_Index::table();$renamed=false;
 $oldConfig=get_option('pra_config');$oldOfficial=get_option('pra_official_options');
 $oldReport=get_option('pra_report');$oldOfficialReport=get_option('pra_official_report');
+$oldHealth=get_option('pra_official_health');
 $http=function($pre,$args,$url){
  $GLOBALS['fixture_http'][]=$url;
  if(str_ends_with((string)parse_url($url,PHP_URL_PATH),'/robots.txt'))$body="User-agent: *\n".(!empty($GLOBALS['deny_robots'])?"Disallow: /":"Allow: /");
@@ -46,6 +47,23 @@ try{
  $wpdb->update($wpdb->options,['option_value'=>'expired-owner|1'],['option_name'=>'pra_official_lock']);wp_cache_delete('pra_official_lock','options');
  $next=PR_Collector_Lock::acquire();regression($next!==null,'expired lease transferred');$old->release();
  regression(PR_Collector_Lock::acquire()===null,'previous owner cannot release successor lease');$next->release();
+ // N-01: inject loss of ownership after acquire, before the first renew().
+ // The health option is read only after the lease has been acquired.
+ update_option('pra_official_options',['enabled'=>0,'aen'=>0,'arapongas'=>0,'londrina'=>0,'maringa'=>0,'apucarana'=>0]);
+ $foreignLease='foreign-owner|'.(time()+3600);
+ $stealLock=static function($pre)use($wpdb,$foreignLease){
+  $wpdb->update($wpdb->options,['option_value'=>$foreignLease],['option_name'=>'pra_official_lock']);
+  wp_cache_delete('pra_official_lock','options');
+  return $pre;
+ };
+ add_filter('pre_option_pra_official_health',$stealLock,10,1);
+ try {PR_Official::collect(true);}finally{remove_filter('pre_option_pra_official_health',$stealLock,10);}
+ $aborted=(array)get_option('pra_official_report');
+ regression(($aborted['aborted']??'')==='lock perdido','official collector returns normally and logs lost lease');
+ $preserved=(string)$wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name=%s",'pra_official_lock'));
+ regression($preserved===$foreignLease,'lost lease never deletes successor owner');
+ delete_option('pra_official_lock');
+
  update_option('pra_config',['enabled'=>0,'ai_enabled'=>0,'sources'=>"Fixture|https://192.0.2.1/?feed=rss2|Brasil"]);
  delete_transient('pra_robots_'.md5('192.0.2.1'));$GLOBALS['deny_robots']=true;$GLOBALS['fixture_http']=[];
  PR_Agentes::collect(true);$report=get_option('pra_report');
@@ -70,6 +88,7 @@ finally{
  PR_Fingerprint_Index::release($fp);delete_option('pra_official_lock');
  update_option('pra_config',$oldConfig);update_option('pra_official_options',$oldOfficial);
  update_option('pra_report',$oldReport);update_option('pra_official_report',$oldOfficialReport);
+ update_option('pra_official_health',$oldHealth);
  remove_filter('pre_http_request',$http,10);remove_filter('pre_option_home',$fixtureHome);
  foreach(glob($dir.'/*') as $file)unlink($file);rmdir($dir);
 }
