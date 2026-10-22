@@ -34,14 +34,19 @@ function pr1_news_og_image():string {
   return $site_icon?esc_url_raw($site_icon):'';
 }
 function pr1_news_canonical_url():string {
-  if(is_singular())return (string)get_permalink(get_queried_object_id());
+  if(is_singular())return (string)wp_get_canonical_url(get_queried_object_id());
   if(is_front_page()||is_home()||is_category()){
     if(max(1,(int)get_query_var('paged'))>1)return (string)get_pagenum_link((int)get_query_var('paged'));
     if(is_category())return (string)get_category_link(get_queried_object_id());
+    if(is_home() && !is_front_page())return (string)get_permalink((int)get_option('page_for_posts'));
     return home_url('/');
   }
   return '';
 }
+// WordPress emits rel_canonical too: keep one owner, preserving external SEO plugins.
+add_action('wp',function(){
+  if(!pr1_news_seo_is_external())remove_action('wp_head','rel_canonical');
+});
 add_action('wp_head',function(){
   if(pr1_news_seo_is_external()||is_admin()||is_search())return;
   $description=pr1_news_description();
