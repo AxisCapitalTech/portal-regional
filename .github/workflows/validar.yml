@@ -15,9 +15,9 @@ jobs:
       matrix:
         php: ['8.0', '8.2', '8.3']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Configurar PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, dom, xml
@@ -26,7 +26,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          php -v
           while IFS= read -r -d '' file; do php -l "$file"; done < <(find wp-content tests -name '*.php' -print0)
+      - name: Testar hostname seguro do AERO
+        run: |
+          php tests/test-aero-host.php
+          php tests/test-aero-host-configured.php
+      - name: Conferir arquivos de segurança
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .github/workflows/importar-v5.yml
+          if grep -RIn --exclude-dir=.git --exclude=validar.yml -E 'alex.direito' .; then
+            echo "ERRO: hostname pessoal presente no código"
+            exit 1
+          fi
+          echo "OK hostname pessoal ausente e importador legado removido"
       - name: Testar parser e URLs das cidades
         run: php tests/test-source-parser.php
       - name: Impedir publicação de pautas brutas
@@ -35,6 +50,8 @@ jobs:
         run: php tests/test-approval.php
       - name: Testar coleta integrada sintética das cinco fontes
         run: php tests/test-official-collect.php
+      - name: Impedir diagnóstico externo automático
+        run: python3 tests/test-ci-policy.py
       - name: Validar estrutura e cidades prioritárias
         run: python3 tests/test-repository.py
       - name: Gerar pacotes WordPress
@@ -44,7 +61,7 @@ jobs:
           mkdir -p dist
           (cd wp-content/plugins && zip -qr ../../dist/portal-regional-agentes.zip portal-regional-agentes)
           (cd wp-content/themes && zip -qr ../../dist/portal-regional-tema.zip portal-regional-tema)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: matrix.php == '8.2'
         with:
           name: portal-regional-wordpress
@@ -68,8 +85,8 @@ jobs:
           --health-cmd="healthcheck.sh --connect --innodb_initialized"
           --health-interval=10s --health-timeout=5s --health-retries=12
     steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: '8.2'
           extensions: mbstring, dom, xml, mysqli, pdo_mysql, curl
@@ -78,11 +95,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/e1b93919b8da39cbc3707f44bd2c61df3bd5b0d6/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          echo "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  /tmp/wp-cli.phar" | sha512sum --check --strict
           mkdir -p /tmp/portal-wp
           php /tmp/wp-cli.phar core download --path=/tmp/portal-wp --allow-root
           php /tmp/wp-cli.phar config create --path=/tmp/portal-wp --dbname=portalregional --dbuser=portal --dbpass=testpassword --dbhost=127.0.0.1:3306 --allow-root
-          php /tmp/wp-cli.phar core install --path=/tmp/portal-wp --url=http://localhost:8088 --title='Portal Regional Homologação' --admin_user=testadmin --admin_password='TemporarySmokeTestOnly_820!' --admin_email=test@example.invalid --skip-email --allow-root
+          wp_test_password="$(openssl rand -hex 24)"
+          php /tmp/wp-cli.phar core install --path=/tmp/portal-wp --url=http://localhost:8088 --title='Portal Regional Homologação' --admin_user=testadmin --admin_password="$wp_test_password" --admin_email=test@example.invalid --skip-email --allow-root
           cp -a wp-content/plugins/portal-regional-agentes /tmp/portal-wp/wp-content/plugins/
           cp -a wp-content/themes/portal-regional-tema /tmp/portal-wp/wp-content/themes/
           php /tmp/wp-cli.phar plugin activate portal-regional-agentes --path=/tmp/portal-wp --allow-root
@@ -93,7 +112,7 @@ jobs:
     name: Docker Railway / acesso restrito
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Conferir configuração de homologação
         run: python3 tests/test-staging-railway.py
       - name: Compilar imagem WordPress de homologação
@@ -110,8 +129,9 @@ jobs:
         run: |
           set -euo pipefail
           trap 'docker rm -f pr1-auth-test >/dev/null 2>&1 || true' EXIT
+          staging_test_password="$(openssl rand -hex 24)"
           docker run -d --name pr1-auth-test -p 127.0.0.1:18080:80 \
-            -e STAGING_USER=editor -e STAGING_PASSWORD=SegredoFicticioParaTesteCI2026 \
+            -e STAGING_USER=editor -e STAGING_PASSWORD="$staging_test_password" \
             -e WORDPRESS_DB_HOST=127.0.0.1:3306 \
             -e WORDPRESS_DB_NAME=testdb -e WORDPRESS_DB_USER=test \
             -e WORDPRESS_DB_PASSWORD=test pr1-staging:test
@@ -124,20 +144,5 @@ jobs:
           [ "$status" = 401 ] || { echo "ERRO: resposta sem senha $status"; docker logs pr1-auth-test; exit 1; }
           status_wrong=$(curl --silent --output /dev/null --write-out '%{http_code}' -u visitante:errado http://127.0.0.1:18080/ || true)
           [ "$status_wrong" = 401 ] || { echo "ERRO: senha errada retornou $status_wrong"; exit 1; }
-          status_good=$(curl --silent --output /dev/null --write-out '%{http_code}' -u editor:SegredoFicticioParaTesteCI2026 http://127.0.0.1:18080/ || true)
+          status_good=$(curl --silent --output /dev/null --write-out '%{http_code}' -u "editor:$staging_test_password" http://127.0.0.1:18080/ || true)
           [ "$status_good" != 401 ] && [ "$status_good" != 000 ] || { echo "ERRO: senha válida rejeitada $status_good"; exit 1; }
-
-  official-live-probe:
-    name: Diagnóstico real de fontes oficiais (não publica)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    timeout-minutes: 4
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, dom, xml, curl
-          coverage: none
-      - name: Ler URLs públicas e medir extração de títulos/links
-        run: php tests/probe-live-sources.php
