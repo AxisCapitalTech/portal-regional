@@ -313,6 +313,7 @@ final class PR_Official {
     PR_Fingerprint_Index::install();
     $lock=PR_Collector_Lock::acquire();if(!$lock)return;
     self::$date_fetches=0;self::$date_info=[];
+    $lock_lost=false;
     $log=['started'=>time(),'created'=>0,'duplicates'=>0,'sources'=>[]];
     $health=(array)get_option(self::HEALTH,[]);
     try {
@@ -343,7 +344,11 @@ final class PR_Official {
         $health[$key]['last_attempt']=time();
         $log['sources'][$key]=$x;
       }
-    }finally{$log['finished']=time();update_option(self::LOG,$log,false);update_option(self::HEALTH,$health,false);$lock->release();}
+    }catch(RuntimeException $e){
+      if(!str_starts_with($e->getMessage(),'Lock de coleta perdido'))throw $e;
+      // Fail closed: a different owner now holds the lease.
+      $log['aborted']='lock perdido';$lock_lost=true;
+    }finally{$log['finished']=time();update_option(self::LOG,$log,false);update_option(self::HEALTH,$health,false);if(!$lock_lost)$lock->release();}
   }
 }
 PR_Official::init();
