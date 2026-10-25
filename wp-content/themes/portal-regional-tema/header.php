@@ -16,13 +16,13 @@
 </div></header>
 <nav class="header-nav pr1-nav" aria-label="Navegação por editoria"><div class="wrap nav-inner pr1-nav-inner">
 <?php if (has_nav_menu('primary')): wp_nav_menu(['theme_location'=>'primary','container'=>false,'menu_class'=>'nav-list pr1-nav-list','depth'=>1]); else: ?>
-<ul class="nav-list pr1-nav-list"><li><a href="<?php echo esc_url(home_url('/')); ?>"<?php echo is_front_page()?' aria-current="page"':''; ?>>Início</a></li>
+<ul class="nav-list pr1-nav-list"><li><a href="<?php echo esc_url(home_url('/')); ?>"<?php echo (is_front_page() && !get_query_var('pr1_aero'))?' aria-current="page"':''; ?>>Início</a></li>
 <?php foreach (['Arapongas','Londrina','Maringá','Apucarana','Paraná','Brasil'] as $label):
   $term=regional_category_for($label);
   if (!$term || is_wp_error($term)) continue;
   $is_active=is_category($term->term_id);
 ?>
 <li><a href="<?php echo esc_url(get_category_link($term)); ?>"<?php echo $is_active?' aria-current="page"':''; ?>><?php echo esc_html($label); ?></a></li>
-<?php endforeach; ?><li><a href="<?php echo esc_url(PR1_Aero_Bridge::portal_url()); ?>">AERO · Clima</a></li><li><a href="<?php echo esc_url(home_url('/?s=')); ?>">Buscar</a></li></ul>
+<?php endforeach; ?><li><a href="<?php echo esc_url(PR1_Aero_Bridge::portal_url()); ?>"<?php echo get_query_var('pr1_aero')?' aria-current="page"':''; ?>>AERO · Clima</a></li><li><a href="<?php echo esc_url(home_url('/?s=')); ?>">Buscar</a></li></ul>
 <?php endif; ?>
 </div></nav>

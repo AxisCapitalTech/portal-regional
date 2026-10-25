@@ -1,6 +1,7 @@
 <?php
 if (!defined('ABSPATH')) exit;
 require_once get_template_directory().'/includes/pr1-aero-bridge.php';
+require_once get_template_directory().'/includes/pr1-aero-native.php';
 require_once get_template_directory().'/includes/pr1-news-seo.php';
 
 
@@ -53,12 +54,22 @@ add_action('after_setup_theme', function () {
   register_nav_menus(['primary'=>'Menu principal']);
   add_image_size('regional-lead', 950, 520, true);
 });
+function pr1_asset_version(string $file): string { $p=get_template_directory().'/'.$file; return is_file($p)?(string)filemtime($p):'0'; }
+add_action('init', function(){if(!is_admin()){remove_action('wp_head','print_emoji_detection_script',7);remove_action('wp_print_styles','print_emoji_styles');}});
 add_action('wp_enqueue_scripts', function () {
-  wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], '0.9.0');
-  wp_enqueue_style('regional-v7', get_template_directory_uri().'/assets/pr1-v7.css', ['regional-theme'], '0.9.0');
-  wp_enqueue_script('regional-v7-reading', get_template_directory_uri().'/assets/pr1-v7.js', [], '0.9.0', true);
-  if(is_front_page() || (bool)get_query_var('pr1_aero') || is_page_template('page-pr1-aero.php')) {
-    wp_enqueue_script('regional-aero', get_template_directory_uri().'/assets/pr1-aero.js', [], '0.9.0', true);
+  wp_enqueue_style('regional-theme', get_stylesheet_uri(), [], pr1_asset_version('style.css'));
+  wp_enqueue_style('regional-v7', get_template_directory_uri().'/assets/pr1-v7.css', ['regional-theme'], pr1_asset_version('assets/pr1-v7.css'));
+  wp_enqueue_script('regional-v7-reading', get_template_directory_uri().'/assets/pr1-v7.js', [], pr1_asset_version('assets/pr1-v7.js'), true);
+  if(is_front_page() && !get_query_var('pr1_aero')) {
+    wp_enqueue_script('regional-aero', get_template_directory_uri().'/assets/pr1-aero.js', [], pr1_asset_version('assets/pr1-aero.js'), true);
+  }
+  if((bool)get_query_var('pr1_aero') || is_page_template('page-pr1-aero.php')) {
+    $u=get_template_directory_uri().'/assets/';
+    wp_enqueue_style('pr1-leaflet', $u.'lib/leaflet-1.9.4/leaflet.css', [], pr1_asset_version('assets/lib/leaflet-1.9.4/leaflet.css'));
+    wp_enqueue_style('pr1-aero-native', $u.'pr1-aero-native.css', ['regional-v7','pr1-leaflet'], pr1_asset_version('assets/pr1-aero-native.css'));
+    wp_enqueue_script('pr1-leaflet', $u.'lib/leaflet-1.9.4/leaflet.js', [], pr1_asset_version('assets/lib/leaflet-1.9.4/leaflet.js'), true);
+    wp_enqueue_script('pr1-aero-state', $u.'pr1-aero-state.js', [], pr1_asset_version('assets/pr1-aero-state.js'), true);
+    wp_enqueue_script('pr1-aero-native', $u.'pr1-aero-native.js', ['pr1-leaflet','pr1-aero-state'], pr1_asset_version('assets/pr1-aero-native.js'), true);
   }
 });
 add_action('save_post_page',function(){wp_cache_delete('pr1_legal_pages_v1','pr1news');});
@@ -109,3 +120,19 @@ function regional_card($post, $mode='story') {
   }
   wp_reset_postdata();
 }
+
+/** SRI da biblioteca de mapas hospedada no próprio tema (Leaflet 1.9.4, BSD-2). */
+function pr1_aero_sri():array {
+  return [
+    'pr1-leaflet-js'=>'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH',
+    'pr1-leaflet-css'=>'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H',
+  ];
+}
+add_filter('script_loader_tag',function($tag,$handle){
+  $sri=pr1_aero_sri();
+  return $handle==='pr1-leaflet' ? str_replace(' src=',' integrity="'.esc_attr($sri['pr1-leaflet-js']).'" crossorigin="anonymous" src=',$tag) : $tag;
+},10,2);
+add_filter('style_loader_tag',function($tag,$handle){
+  $sri=pr1_aero_sri();
+  return $handle==='pr1-leaflet' ? str_replace(' href=',' integrity="'.esc_attr($sri['pr1-leaflet-css']).'" crossorigin="anonymous" href=',$tag) : $tag;
+},10,2);

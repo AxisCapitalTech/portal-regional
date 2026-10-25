@@ -2,7 +2,7 @@
 /** Atomic deduplication shared by RSS and municipal source collectors. */
 if (!defined('ABSPATH')) exit;
 final class PR_Fingerprint_Index {
-  private const VERSION='1';
+  private const VERSION='3';
   public static function table():string {
     global $wpdb;
     return $wpdb->prefix.'pra_fingerprints';
@@ -24,8 +24,10 @@ KEY post_id (post_id)
     // Preserve historic fingerprints; avoid copying invalid or noncanonical values.
     $wpdb->query("INSERT IGNORE INTO $table (fingerprint,post_id,created_at)
       SELECT meta_value, post_id, UTC_TIMESTAMP() FROM {$wpdb->postmeta}
-      WHERE meta_key='_pra_source_fingerprint'
+      WHERE meta_key IN ('_pra_source_fingerprint','_pra_red_fingerprint')
       AND meta_value REGEXP '^[0-9a-f]{64}$'");
+    // v3: drop committed fingerprints whose post was permanently deleted before the deleted_post hook existed.
+    $wpdb->query("DELETE f FROM $table f LEFT JOIN {$wpdb->posts} p ON p.ID=f.post_id WHERE f.post_id>0 AND p.ID IS NULL");
     if($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$table))===$table)
       update_option('pra_fingerprint_schema_version',self::VERSION,false);
   }
@@ -35,7 +37,12 @@ KEY post_id (post_id)
     if(!preg_match('/^[0-9a-f]{64}$/D',$fingerprint))return false;
     if(!method_exists($wpdb,'query'))return true; // synthetic unit shim; integration tests use MariaDB
     $table=self::table();
-    $expired=$wpdb->query($wpdb->prepare("DELETE FROM $table WHERE fingerprint=%s AND post_id=0 AND created_at < UTC_TIMESTAMP() - INTERVAL 30 MINUTE",$fingerprint));
+    $expired=false;
+    for($attempt=0;$attempt<3;$attempt++){
+      $expired=$wpdb->query($wpdb->prepare("DELETE FROM $table WHERE fingerprint=%s AND post_id=0 AND created_at < UTC_TIMESTAMP() - INTERVAL 30 MINUTE",$fingerprint));
+      if($expired!==false)break;
+      if($attempt<2)usleep(50000*($attempt+1));
+    }
     if($expired===false)throw new RuntimeException('Índice de fingerprints: erro SQL ao limpar reserva');
     $sql=$wpdb->prepare("INSERT IGNORE INTO $table (fingerprint,post_id,created_at) VALUES (%s,0,UTC_TIMESTAMP())",$fingerprint);
     $result=$wpdb->query($sql);
@@ -46,6 +53,12 @@ KEY post_id (post_id)
     global $wpdb;
     if(!method_exists($wpdb,'query'))return;
     $wpdb->update(self::table(),['post_id'=>$post_id],['fingerprint'=>$fingerprint,'post_id'=>0],['%d'],['%s','%d']);
+  }
+  /** Permanent deletion of a post frees its fingerprints (trash/draft keep them). */
+  public static function forget_post(int $post_id):void {
+    global $wpdb;
+    if($post_id<=0||!method_exists($wpdb,'query'))return;
+    $wpdb->delete(self::table(),['post_id'=>$post_id],['%d']);
   }
   public static function release(string $fingerprint):void {
     global $wpdb;

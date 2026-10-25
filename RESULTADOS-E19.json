@@ -1,0 +1,27 @@
+[
+  {
+    "teste": "tests/test-e16-fail-closed.php",
+    "exit": 0,
+    "saida": "PASS: API and scheduler disabled even with opt-in flags supplied\n"
+  },
+  {
+    "teste": "tests/test-e17-budget.php",
+    "exit": 0,
+    "saida": "PASS: sem orçamento configurado: bloqueia\nPASS: reserva simulada com parâmetros válidos\nPASS: SQL condicional atômico\nPASS: limite atingido: bloqueia\nPASS: falha no banco: bloqueia\n"
+  },
+  {
+    "teste": "tests/test-e18-worker-lock.php",
+    "exit": 0,
+    "saida": "PASS first owner obtains lock\nPASS concurrent owner blocked\nPASS expired lock recovered with compare-and-swap\nPASS new owner not displaced\nPASS corrupt lock fails closed\nPASS OpenAI client disabled\nPASS worker disabled\nPASS recovery reacquires stale lock\nPASS release does not delete another owner lock\n"
+  },
+  {
+    "teste": "tests/test-norm-locale.php",
+    "exit": 0,
+    "saida": "OK locale forçado em C\nOK norm() sem depender do locale\nOK denúncia detectada como sensível em locale C\nOK corrupção detectada como sensível em locale C\nOK tema sensível vai para revisão humana em locale C\nOK Maringá atribuída por cobertura em locale C\nOK AERO norm(Maringá) em locale C\nOK AERO norm com til/acento em locale C\nOK normalização independente de locale\n"
+  },
+  {
+    "teste": "tests/test-redacao-logic.php",
+    "exit": 255,
+    "saida": "OK editoria desconhecida exige humano\nOK calendário oficial verificado é candidato, não publicado\nOK SENSITIVE prevalece sobre categoria automática\nOK tempo sem licença exige humano\nOK tempo com licença e fonte pode ser candidato\nOK atribuição por cobertura\nOK área fora da cobertura vai para humano\nOK agente suspenso não recebe pauta\nOK dedup por URL e título parecido\nOK fingerprint estável\nPHP Fatal error:  Uncaught Error: Call to undefined function mb_strlen() in /mnt/data/PR1_E19_DEMONSTRACAO_HOMOLOGACAO/wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-redacao-logic.php:116\nStack trace:\n#0 /mnt/data/PR1_E19_DEMONSTRACAO_HOMOLOGACAO/tests/test-redacao-logic.php(27): PRA_Redacao_Logic::validate_schema()\n#1 {main}\n  thrown in /mnt/data/PR1_E19_DEMONSTRACAO_HOMOLOGACAO/wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-redacao-logic.php on line 116\n"
+  }
+]

@@ -55,16 +55,26 @@ aero_widget=(root/'wp-content/themes/portal-regional-tema/template-parts/pr1-aer
 aero_js=(root/'wp-content/themes/portal-regional-tema/assets/pr1-aero.js').read_text()
 for term in ['pr1-aero-home','PR1_Aero_Bridge::portal_url','pr1-aero-conditions']:
     assert term in front
-for term in ['AERO Command Center','data-aero-load','data-src','sandbox=','pr1-aero-conditions']:
+for term in ['AERO Command Center','data-aero-app','data-aero-map']:
     assert term in aero_page
 for term in ['register_rest_route','pr1-aero/v1','wp_safe_remote_get','set_transient','Open-Meteo','PR1_AERO_COMMERCIAL_API_APPROVED']:
     assert term in aero_bridge
-assert "allow-same-origin" in aero_page and 'src="' not in aero_page.split('data-src=')[0]
+assert '<iframe' not in aero_page and 'data-src' not in aero_page and 'PR1_AERO_HOST' not in aero_page
 assert 'Arapongas' in aero_widget and 'Maringá' in aero_widget
 assert 'new URL(endpoint' in aero_js and 'textContent' in aero_js
 assert "'enabled'=>0" in official
 assert 'normalize_manual_item' in official and 'manual_link' in official
 print('OK V9 AERO, licença comercial bloqueada e fallback assistido')
+# AERO nativo: mapa local com SRI, iframe só como fallback, estados e trava de licença.
+aero_native=(root/'wp-content/themes/portal-regional-tema/includes/pr1-aero-native.php').read_text()
+aero_logic=(root/'wp-content/themes/portal-regional-tema/includes/pr1-aero-logic.php').read_text()
+theme_fn=(root/'wp-content/themes/portal-regional-tema/functions.php').read_text()
+assert 'STALE_MINUTES = 30' in aero_logic and 'tilecache.rainviewer.com' in aero_logic
+assert aero_native.count('commercial_locked()')>=2 and 'lightning_source_missing' in aero_native
+assert aero_page.count('data-aero-map') == 1 and '<iframe' not in aero_page
+assert 'lib/leaflet-1.9.4/leaflet.js' in theme_fn and 'sha384-' in theme_fn and 'unpkg.com' not in theme_fn
+assert (root/'wp-content/themes/portal-regional-tema/assets/lib/leaflet-1.9.4/LICENSE').exists()
+print('OK AERO nativo: Leaflet local com SRI, estados e licença')
 
 # Etapa 1: restrição da origem AERO e workflow antigo excluído.
 assert not (root/'.github/workflows/importar-v5.yml').exists()
@@ -75,8 +85,9 @@ for file in root.rglob('*'):
 assert "'regional_aero_url'" not in theme_functions
 assert 'PR1_AERO_HOST' in aero_bridge and 'validated_host' in aero_bridge
 assert "return ''" in aero_bridge
-assert "wp-config.php" in aero_page
-assert "if($aero_url!=='')" in aero_page
+assert "data-aero-app" in aero_page
+assert "data-aero-map" in aero_page
+assert "PR1_AERO_HOST" not in aero_page
 workflow=(root/'.github/workflows/validar.yml').read_text()
 assert workflow.count('openssl rand -hex 24') >= 2
 assert 'tests/test-aero-host.php' in workflow and 'tests/test-aero-host-configured.php' in workflow
@@ -95,7 +106,7 @@ for filename in ['functions.php','includes/pr1-aero-bridge.php','page-pr1-aero.p
     assert host_fragment not in source, 'Hardcoded personal hostname in '+filename
 assert 'regional_aero_url' not in theme_functions, 'AERO URL should not be editable in the customizer'
 assert 'PR1_AERO_HOST' in bridge and 'validated_host' in bridge
-assert '$aero_url!==\'\'' in aero_page and 'wp-config.php' in aero_page
+assert 'data-aero-app' in aero_page and '<iframe' not in aero_page
 workflow=(root/'.github/workflows/validar.yml').read_text()
 assert workflow.count('openssl rand -hex 24') >= 2, 'CI passwords must be generated at runtime'
 assert 'tests/test-aero-host.php' in workflow and 'tests/test-aero-host-configured.php' in workflow
@@ -123,7 +134,7 @@ assert '<time datetime=' in single and 'get_author_posts_url' in single
 assert "get_page_by_path($slug)" in footer and "get_privacy_policy_url()" in footer
 assert "get_privacy_policy_url() && shortcode_exists('pra_newsletter')" in front
 assert "['original']??" in front and "Título na origem:" in front
-assert "is_front_page() || (bool)get_query_var('pr1_aero')" in theme_functions
+assert "is_front_page() && !get_query_var('pr1_aero')" in theme_functions
 assert "localStorage.setItem" in v7js and "localStorage.getItem" in v7js
 print('OK Etapa 3: atribuição, política, UX e carregamento AERO condicional')
 

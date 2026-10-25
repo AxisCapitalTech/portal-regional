@@ -26,6 +26,13 @@ final class PR1_Aero_Bridge {
     });
   }
   public static function city_ids():array {return array_keys(self::CITIES);}
+  /** Lista pública (somente leitura) das cidades monitoradas. */
+  public static function cities():array {return self::CITIES;}
+  /** Trava de licença comercial (Open-Meteo/RainViewer gratuitos = uso não comercial). */
+  public static function commercial_locked():bool {
+    return wp_get_environment_type()==='production'
+      && (!defined('PR1_AERO_COMMERCIAL_API_APPROVED') || PR1_AERO_COMMERCIAL_API_APPROVED!==true);
+  }
   public static function portal_url():string {return add_query_arg('pr1_aero','1',home_url('/'));}
   /** Only this configured hostname may be used for navigation or embeds. */
   public static function validated_host(string $raw):string {
@@ -47,8 +54,7 @@ final class PR1_Aero_Bridge {
   public static function conditions($request) {
     // A API gratuita Open-Meteo só permite uso não comercial. Site com anúncios
     // ou assinaturas requer plano/licença comercial configurado antes de usar.
-    if(wp_get_environment_type()==='production'
-       && (!defined('PR1_AERO_COMMERCIAL_API_APPROVED') || PR1_AERO_COMMERCIAL_API_APPROVED!==true))
+    if(self::commercial_locked())
       return new WP_Error('weather_license_pending','Serviço climático indisponível até a regularização da licença comercial.',['status'=>503]);
     $id=sanitize_key((string)$request->get_param('city'));
     if(!isset(self::CITIES[$id]))return new WP_Error('invalid_city','Cidade não disponível.',['status'=>400]);

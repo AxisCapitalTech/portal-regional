@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.0', '8.2', '8.3']
+        php: ['8.1', '8.2', '8.3', '8.4']
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Configurar PHP
@@ -32,6 +32,23 @@ jobs:
         run: |
           php tests/test-aero-host.php
           php tests/test-aero-host-configured.php
+      - name: Testar AERO nativo (estados, radar, INMET, licença)
+        run: |
+          php tests/test-aero-native.php
+          php tests/test-aero-license.php
+          php tests/test-norm-locale.php
+          node tests/js/test-aero-state.js
+      - name: Testar Redação Grok (lógica, fixtures, sem rede)
+        run: php tests/test-redacao-logic.php
+      - name: Validar módulo E16-E22 sem rede
+        shell: bash
+        run: |
+          set -euo pipefail
+          php tests/test-e16-fail-closed.php
+          php tests/test-e17-budget.php
+          php tests/test-e18-worker-lock.php
+          php tests/test-e20-evidence.php
+          php tests/test-e21-review.php
       - name: Conferir arquivos de segurança
         shell: bash
         run: |
@@ -69,6 +86,8 @@ jobs:
         run: python3 tests/test-ci-policy.py
       - name: Validar estrutura e cidades prioritárias
         run: python3 tests/test-repository.py
+      - name: Etapa 7 regressions
+        run: python3 tests/test-etapa7-regressions.py
       - name: Gerar pacotes WordPress
         if: matrix.php == '8.2'
         shell: bash
@@ -124,6 +143,10 @@ jobs:
           php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/smoke-wordpress.php" --path=/tmp/portal-wp --allow-root
           php tests/test-fingerprint-concurrency.php /tmp/portal-wp/wp-load.php
           php tests/test-collector-concurrency.php /tmp/portal-wp/wp-load.php
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/test-redacao-wordpress.php" --path=/tmp/portal-wp --allow-root
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/test-redacao-wordpress.php" --path=/tmp/portal-wp --allow-root
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/test-e22-wordpress.php" --path=/tmp/portal-wp --allow-root
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/test-fingerprint-delete.php" --path=/tmp/portal-wp --allow-root
           php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/test-published-placeholders.php" --path=/tmp/portal-wp --allow-root
 
   staging-docker:
