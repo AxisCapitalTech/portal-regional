@@ -1,0 +1,30 @@
+{
+  "php": [
+    {
+      "file": "wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-openai-automation.php",
+      "passed": true,
+      "output": "No syntax errors detected in /mnt/data/PR1_E16_HOMOLOGACAO_SEGURA/wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-openai-automation.php"
+    },
+    {
+      "file": "wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-openai-client.php",
+      "passed": true,
+      "output": "No syntax errors detected in /mnt/data/PR1_E16_HOMOLOGACAO_SEGURA/wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-openai-client.php"
+    },
+    {
+      "file": "tests/test-e16-fail-closed.php",
+      "passed": true,
+      "output": "No syntax errors detected in /mnt/data/PR1_E16_HOMOLOGACAO_SEGURA/tests/test-e16-fail-closed.php"
+    }
+  ],
+  "functional": {
+    "passed": true,
+    "output": "PASS: API and scheduler disabled even with opt-in flags supplied",
+    "error": ""
+  },
+  "limitations": [
+    "WordPress/MySQL integration not executed",
+    "No verified source ingestion",
+    "No real OpenAI calls or autonomous news production",
+    "No monetary quota implemented; fail-closed guard intentional"
+  ]
+}

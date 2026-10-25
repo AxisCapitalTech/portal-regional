@@ -52,7 +52,7 @@ Os testes sintéticos de fontes não usam a internet. O teste `smoke-wordpress.p
 
 O repositório privado `AxisCapitalTech/portal-regional` contém o código-fonte integral da V5, importado e conferido por SHA-256 no GitHub Actions. Os testes sintéticos de parser, fontes oficiais, duplicatas e aprovação editorial passaram no workflow de importação.
 
-A matriz PHP (8.0/8.2/8.3) e o teste WordPress/MariaDB são executados pelo workflow `.github/workflows/validar.yml` a cada nova alteração no repositório. Isso é homologação automatizada, não publicação de um site de notícias.
+A matriz PHP (8.1/8.2/8.3/8.4; PHP mínimo 8.1) e o teste WordPress/MariaDB são executados pelo workflow `.github/workflows/validar.yml` a cada nova alteração no repositório. Isso é homologação automatizada, não publicação de um site de notícias.
 
 **Não há publicação automática de notícias**: as pautas coletadas ficam pendentes até revisão e aprovação humana.
 

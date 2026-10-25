@@ -4,7 +4,7 @@
  * Description: Monitora fontes RSS autorizadas, classifica por região e prepara pautas auditáveis para aprovação humana.
  * Version: 0.6.0
  * Requires at least: 6.4
- * Requires PHP: 8.0
+ * Requires PHP: 8.1
  * Author: Projeto Portal Regional
  * License: GPL-2.0-or-later
  * Text Domain: portal-regional-agentes
@@ -12,6 +12,9 @@
 if (!defined('ABSPATH')) { exit; }
 
 require_once __DIR__.'/includes/class-pra-fingerprint.php';
+require_once __DIR__.'/includes/redacao/class-pra-redacao.php';
+require_once __DIR__.'/includes/redacao/class-pra-openai-automation.php';
+require_once __DIR__.'/includes/redacao/class-pra-source-review.php';
 final class PR_Agentes {
     private const OPTION = 'pra_config';
     private const REPORT = 'pra_report';
@@ -31,12 +34,16 @@ final class PR_Agentes {
         add_action('admin_notices', [__CLASS__, 'notice']);
         add_filter('wp_insert_post_data', [__CLASS__, 'prevent_unreviewed_publish'], 10, 2);
         add_action('save_post_post', [__CLASS__, 'record_editorial_approval'], 25, 3);
+        add_action('deleted_post', static function ($post_id) {
+            require_once __DIR__.'/includes/class-pra-fingerprint.php';
+            PR_Fingerprint_Index::forget_post((int) $post_id);
+        });
     }
     public static function activate(): void {
         if (!get_option(self::OPTION)) {
             add_option(self::OPTION, [
                 'enabled' => 0,
-                'ai_enabled' => 0,
+                'ai_enabled' => 0, 'auto_publish_enabled' => 0,
                 'sources' => "Agência Brasil - Últimas|https://agenciabrasil.ebc.com.br/rss/ultimasnoticias/feed.xml|Brasil",
             ], '', false);
         }
@@ -48,7 +55,7 @@ final class PR_Agentes {
     public static function intervals(array $schedules): array { return $schedules; }
     private static function options(): array {
         return wp_parse_args((array) get_option(self::OPTION, []), [
-            'enabled' => 0, 'ai_enabled' => 0, 'sources' => ''
+            'enabled' => 0, 'ai_enabled' => 0, 'auto_publish_enabled' => 0, 'sources' => ''
         ]);
     }
     public static function menu(): void {

@@ -51,11 +51,15 @@
   <a class="pr1-aero-link" href="<?php echo esc_url(PR1_Aero_Bridge::portal_url()); ?>">Explorar painel AERO ↗</a></div>
   <?php get_template_part('template-parts/pr1-aero-conditions'); ?>
  </section>
+ <?php $pr1_clipping_items=require get_template_directory().'/includes/pr1-links-oficiais-v8.php';
+ $pr1_clipping_dates=array_filter(array_map(static function($entry){$dt=DateTimeImmutable::createFromFormat('!d/m/Y',(string)($entry['date']??''),new DateTimeZone('America/Sao_Paulo'));return $dt ? $dt->getTimestamp() : 0;},$pr1_clipping_items));
+ $pr1_latest_clipping=$pr1_clipping_dates ? max($pr1_clipping_dates) : 0;
+ if ($pr1_latest_clipping && time()-$pr1_latest_clipping <= 7*DAY_IN_SECONDS): ?>
  <section class="pr1-official-links" aria-labelledby="pr1-official-heading">
    <div class="pr1-section-head"><h2 id="pr1-official-heading">Nas fontes oficiais</h2><span>Links externos selecionados em 21/10/2026</span></div>
    <p class="pr1-official-disclosure"><strong>Clipping de comunicados oficiais.</strong> Estas chamadas são referências para leitura no site de origem, não reportagens produzidas pelo PR1. Não há atualização automática nem aprovação editorial implícita de todo o conteúdo externo.</p>
    <div class="pr1-official-grid">
-   <?php $official_links=require get_template_directory().'/includes/pr1-links-oficiais-v8.php';
+   <?php $official_links=$pr1_clipping_items;
    foreach ($official_links as $entry):
       $host=wp_parse_url($entry['url'], PHP_URL_HOST);
       if (!in_array($host,['arapongas.atende.net','blog.londrina.pr.gov.br','www.maringa.pr.gov.br','www.apucarana.pr.gov.br','www.parana.pr.gov.br'],true)) continue;
@@ -68,6 +72,7 @@
    <?php endforeach; ?>
    </div>
  </section>
+ <?php endif; ?>
  <section class="pr1-formats" aria-label="Formatos editoriais"><div class="pr1-section-head"><h2>Notícia, serviço e contexto</h2><span>Três formatos de informação local</span></div>
   <div class="pr1-format-grid">
    <article class="pr1-format-card"><b aria-hidden="true">01</b><span class="pr1-red-label">NOTÍCIA</span><h3>O fato, com apuração</h3><p>Informação factual, fontes identificadas e responsabilidade sobre cada detalhe publicado.</p></article>

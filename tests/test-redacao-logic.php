@@ -1,0 +1,54 @@
+<?php
+/** Redação Grok — lógica pura com FIXTURES fictícias. Sem WordPress, sem rede, sem IA. */
+define('ABSPATH', __DIR__.'/');
+require_once __DIR__.'/../wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-redacao-logic.php';
+require_once __DIR__.'/../wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-llm-client.php';
+$F = require __DIR__.'/fixtures/redacao/fixtures.php';
+$fail=0; function ok($c,$l){global $fail; if(!$c){fwrite(STDERR,"FAIL $l\n");$fail++;} else echo "OK $l\n";}
+$L='PRA_Redacao_Logic';
+ok(count($L::AGENTS)===5,'5 agentes configurados');
+ok($L::assign_persona(['editoria'=>'mundo'])==='fabio_roberto','Mundo: Fábio Roberto');
+ok($L::assign_persona(['editoria'=>'tempo'])==='leticia_alvarez','Tempo: Letícia Alvarez');
+ok($L::assign_persona(['editoria'=>'esportes'])==='alberto_torres','Esportes: Alberto Torres');
+ok($L::assign_persona(['editoria'=>'desconhecida'])===null,'editoria desconhecida exige humano');
+$base=['title'=>'Calendário oficial publicado','editoria'=>'calendario','sources'=>[['url'=>'https://gov.br']],'facts'=>[['text'=>'Data confirmada']],'verified'=>true,'official_source'=>true];
+ok($L::classify($base)['class']==='auto_candidata','calendário oficial verificado é candidato, não publicado');
+$b=$base;$b['title']='Denúncia de corrupção em calendário';ok($L::classify($b)['class']==='revisao_humana','SENSITIVE prevalece sobre categoria automática');
+$b=$base;$b['editoria']='tempo';ok($L::classify($b)['class']==='revisao_humana','tempo sem licença exige humano');
+$b['weather_licensed']=true;ok($L::classify($b)['class']==='auto_candidata','tempo com licença e fonte pode ser candidato');
+
+ok($L::assign(['area'=>'Arapongas'])==='reporter_regional'&&$L::assign(['area'=>'Maringá'])==='metropolitano'&&$L::assign(['area'=>'Brasil'])==='parana_brasil','atribuição por cobertura');
+ok($L::assign(['area'=>'Curitiba'])===null,'área fora da cobertura vai para humano');
+ok($L::assign(['area'=>'Arapongas'],['reporter_regional'])===null,'agente suspenso não recebe pauta');
+$d=$L::dedup([['title'=>'Prefeitura abre vagas em creches de Arapongas','url'=>'https://a.gov.br/1'],['title'=>'Prefeitura abre vagas em creches de Arapongas!','url'=>'https://b.gov.br/2'],['title'=>'Outra pauta','url'=>'https://a.gov.br/1'],['title'=>'Obras na PR-444 em Londrina','url'=>'https://c.gov.br/3']]);
+ok(count($d['kept'])===2&&count($d['duplicates'])===2,'dedup por URL e título parecido');
+ok($L::fingerprint($F['pauta'])===$L::fingerprint($F['pauta']+['x'=>1]),'fingerprint estável');
+$g=$F['good'];
+ok($L::validate_schema($g)===[],'esquema completo aceito (fixture)');
+$c=$L::check($g,$F['source_texts']);
+ok($c['decision']==='aprovada_checagem',"matéria sustentada passa na checagem: ".json_encode($c['reasons']));
+$b=$g; $b['sources']=[]; ok(in_array('sem_fontes',$L::check($b,[])['reasons'],true),'sem fontes = rejeitada');
+$b=$g; $b['sources'][0]['url']='https://blog-qualquer.example.com/x'; ok(in_array('fonte_0_nao_autorizada',$L::validate_schema($b),true),'fonte fora da lista autorizada');
+$b=$g; $b['facts'][]=['text'=>'a prefeitura vai distribuir 50 mil cestas básicas em dezembro','source'=>0]; ok($L::check($b,$F['source_texts'])['decision']==='rejeitada','fato inventado (fake news) rejeitado');
+$b=$g; $b['facts'][]=['text'=>'algo','source'=>3]; ok(in_array('fato_1_sem_fonte',$L::check($b,$F['source_texts'])['reasons'],true),'fato apontando fonte inexistente');
+$b=$g; $b['body'].="\n\nO prefeito garantiu: \"ninguém ficará sem vacina nesta cidade em hipótese alguma\"."; $r=$L::check($b,$F['source_texts']);
+ok(in_array('citacao_inventada',$r['reasons'],true),'citação inventada rejeitada');
+$b=$g; $b['body']=$F['source_texts'][0].' '.$F['source_texts'][0]; ok((bool)preg_grep('/^plagio_/',$L::check($b,$F['source_texts'])['reasons']),'cópia da fonte (plágio) rejeitada');
+$b=$g; $b['body'].="\n\nO caso envolve uma investigação sobre corrupção na secretaria."; $r=$L::check($b,$F['source_texts']);
+ok($r['decision']==='escalada_humano'&&in_array('corrupcao',$r['sensitive'],true),'tema sensível escalado ao humano');
+$b=$g; $b['status']='publish'; ok(in_array('status_deve_ser_pending',$L::validate_schema($b),true),'status diferente de pending rejeitado');
+$b=$g; unset($b['provenance']['model']); ok(in_array('proveniencia_model',$L::validate_schema($b),true),'proveniência obrigatória');
+$b=$g; $b['weather']=['state'=>'stale']; $b['body'].="\n\nNeste momento chove forte na cidade."; ok(in_array('clima_desatualizado_como_atual',$L::check($b,$F['source_texts'])['reasons'],true),'clima desatualizado como atual rejeitado');
+$b=$g; $b['weather']=['state'=>'live','alert_source'=>'AERO']; $b['body'].="\n\nHá alerta oficial de tempestade."; ok(in_array('clima_como_alerta_oficial',$L::check($b,$F['source_texts'])['reasons'],true),'previsão AERO como alerta oficial rejeitada');
+ok($L::within_limits(['calls'=>19,'tokens'=>0,'usd'=>0],100,0.0)===true,'dentro do limite');
+ok($L::within_limits(['calls'=>20,'tokens'=>0,'usd'=>0],100,0.0)===false,'limite de chamadas/dia');
+ok($L::within_limits(['calls'=>0,'tokens'=>59000,'usd'=>0],2000,0.0)===false,'limite de tokens/dia');
+ok($L::within_limits(['calls'=>0,'tokens'=>0,'usd'=>0.49],10,0.02)===false,'limite de US$/dia');
+ok($L::may_run(['ai_enabled'=>1],true,true,'checagem',[])===[false,'kill_switch'],'kill switch tem prioridade');
+ok($L::may_run(['ai_enabled'=>0],false,true,'checagem',[])===[false,'ai_desativada'],'ai_enabled=0 bloqueia');
+ok($L::may_run(['ai_enabled'=>1],false,false,'checagem',[])===[false,'cliente_desativado'],'cliente desativado bloqueia');
+$cl=new PRA_Grok_Disabled_Client(); $r=$cl->draft([],[],[]);
+ok(!$cl->enabled()&&$r['ok']===false&&$r['tokens_in']===0,'stub Grok desativado: sem chamada, sem custo');
+$src=file_get_contents(__DIR__.'/../wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-llm-client.php').file_get_contents(__DIR__.'/../wp-content/plugins/portal-regional-agentes/includes/redacao/class-pra-redacao.php');
+ok(!preg_match('/wp_remote_|curl_|file_get_contents\(\s*[\'"]https?|api\.x\.ai|wp_schedule_event/',$src),'nenhuma chamada de rede nem cron no código da redação');
+if($fail){fwrite(STDERR,"$fail falha(s)\n");exit(1);} echo "OK Redação Grok: lógica\n";
